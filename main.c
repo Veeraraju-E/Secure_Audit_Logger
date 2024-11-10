@@ -369,7 +369,127 @@ void skip_test(const char *test_name) {
     printf(BLUE "Skip: This audit has to be done manually\n" RESET);
 }
 
-int main() {
+//----------------------------------------------------------------------------------------------------------------------------------
+//Added by Pujit, to be rechecked after running
+// Function to check if a service is enabled and running
+int check_service(const char *service) 
+{
+    char command[100];
+    sprintf(command, "systemctl is-enabled %s 2>/dev/null", service);
+    if (system(command) != 0) return 0;
+
+    sprintf(command, "systemctl status %s | grep 'Active: active (running)' >/dev/null", service);
+    return system(command) == 0;
+}
+
+// Function to check file permissions and ownership
+int check_permissions(const char *filepath, mode_t mode, uid_t uid, gid_t gid) 
+{
+    struct stat fileStat;
+    if (stat(filepath, &fileStat) != 0) return 0; // File does not exist
+
+    if (fileStat.st_uid != uid || fileStat.st_gid != gid) return 0;
+    return (fileStat.st_mode & 0777) == mode;
+}
+
+// Check if file exists
+int file_exists(const char *filepath) 
+{
+    return access(filepath, F_OK) == 0;
+}
+
+int check_command(const char *command, const char *expected_output) 
+{
+    char result[256];
+    FILE *fp = popen(command, "r");
+    if (fp == NULL) return 0;
+    fgets(result, sizeof(result), fp);
+    pclose(fp);
+    return strstr(result, expected_output) != NULL;
+}
+
+int check_permissions(const char *filepath, mode_t mode, uid_t uid, gid_t gid) 
+{
+    struct stat fileStat;
+    if (stat(filepath, &fileStat) != 0) return 0;
+    if (fileStat.st_uid != uid || fileStat.st_gid != gid) return 0;
+    return (fileStat.st_mode & 0777) == mode;
+}
+
+// Tests
+void test_cron_enabled_and_running() //The cron daemon schedules and executes tasks at specified times. This test ensures that cron is active and will continue to run scheduled jobs.
+{
+    printf("Test: 5.1.1 Ensure cron daemon is enabled and running\n");
+    if (check_command("systemctl is-enabled cron", "enabled") && check_command("systemctl status cron | grep 'Active: active (running)'", "active (running)")) 
+    {
+        printf("\033[1;32mPass: cron daemon is enabled and running\033[0m\n");
+    } 
+    else 
+    {
+        printf("\033[1;31mFail: cron daemon is not enabled or running\033[0m\n");
+    }
+}
+
+void test_crontab_permissions() //The crontab file contains system-wide scheduled tasks. Restricting its permissions prevents unauthorized users from modifying scheduled jobs.
+{
+    printf("Test: 5.1.2 Ensure permissions on /etc/crontab are configured\n");
+    if (check_permissions("/etc/crontab", 0700, 0, 0)) 
+    {
+        printf("\033[1;32mPass: /etc/crontab permissions are correct\033[0m\n");
+    } 
+    else 
+    {
+        printf("\033[1;31mFail: /etc/crontab permissions are incorrect\033[0m\n");
+    }
+}
+
+//Checks permissions on various cron directories: /etc/cron.hourly, /etc/cron.daily, /etc/cron.weekly, /etc/cron.monthly, and /etc/cron.d.
+void test_cron_directories_permissions(const char *directory, const char *test_name) //These directories contain scripts that are run by cron at regular intervals (hourly, daily, weekly, monthly, or as specified). Securing their permissions helps protect scheduled tasks.
+{
+    printf("Test: %s Ensure permissions on %s are configured\n", test_name, directory);
+    if (check_permissions(directory, 0700, 0, 0)) 
+    {
+        printf("\033[1;32mPass: %s permissions are correct\033[0m\n", directory);
+    } 
+    else 
+    {
+        printf("\033[1;31mFail: %s permissions are incorrect\033[0m\n", directory);
+    }
+}
+
+//Ensures that cron jobs are restricted to authorized users only.
+void test_cron_restricted_to_authorized_users() //Prevents unauthorized users from scheduling cron jobs, which could lead to security risks or unauthorized system modifications.
+{
+    printf("Test: 5.1.8 Ensure cron is restricted to authorized users\n");
+    if (!access("/etc/cron.deny", F_OK) &&
+        check_permissions("/etc/cron.allow", 0640, 0, 0)) 
+    {
+        printf("\033[1;32mPass: cron is restricted to authorized users\033[0m\n");
+    } 
+    else 
+    {
+        printf("\033[1;31mFail: cron is not restricted to authorized users\033[0m\n");
+    }
+}
+
+//Ensures that access to the at command (used for scheduling one-time jobs) is restricted to authorized users.
+void test_at_restricted_to_authorized_users() //Limits the ability to schedule jobs with at, preventing unauthorized users from running scheduled commands, which could impact security.
+{
+    printf("Test: 5.1.9 Ensure at is restricted to authorized users\n");
+    if (!access("/etc/at.deny", F_OK) && check_permissions("/etc/at.allow", 0640, 0, 0)) 
+    {
+        printf("\033[1;32mPass: at is restricted to authorized users\033[0m\n");
+    } 
+    else 
+    {
+        printf("\033[1;31mFail: at is not restricted to authorized users\033[0m\n");
+    }
+}
+//Pujit's additions end here
+//----------------------------------------------------------------------------------------------------------------------------------
+
+int main() 
+{
     // 4.1 - Configure System Accounting
     test_auditd_installed();    // 4.1.1.1
     test_auditd_service_enabled();  // 4.1.1.2
@@ -405,6 +525,54 @@ int main() {
     test_journald_compression();
     test_journald_persistent_storage();
     skip_test("4.2.3 Ensure permissions on all logfiles are configured (Manual)");
-    
+
+
+    // // 5.1.1 Ensure cron daemon is enabled and running
+    // if (check_service("cron"))
+    //     printf("5.1.1 Cron service is enabled and running.\n");
+    // else
+    //     printf("5.1.1 Cron service is NOT enabled or running.\n");
+
+    // // 5.1.2 Ensure permissions on /etc/crontab
+    // if (check_permissions("/etc/crontab", 0700, 0, 0))
+    //     printf("5.1.2 /etc/crontab permissions are correct.\n");
+    // else
+    //     printf("5.1.2 /etc/crontab permissions are NOT correct.\n");
+
+    // // 5.1.3 to 5.1.7 Check permissions for cron directories
+    // const char *cron_dirs[] = {
+    //     "/etc/cron.hourly", "/etc/cron.daily",
+    //     "/etc/cron.weekly", "/etc/cron.monthly", "/etc/cron.d"
+    // };
+    // for (int i = 0; i < 5; ++i) {
+    //     if (check_permissions(cron_dirs[i], 0700, 0, 0))
+    //         printf("Permissions for %s are correct.\n", cron_dirs[i]);
+    //     else
+    //         printf("Permissions for %s are NOT correct.\n", cron_dirs[i]);
+    // }
+
+    // // 5.1.8 Ensure cron is restricted to authorized users
+    // if (!file_exists("/etc/cron.deny") && check_permissions("/etc/cron.allow", 0640, 0, 0))
+    //     printf("5.1.8 Cron is restricted to authorized users.\n");
+    // else
+    //     printf("5.1.8 Cron is NOT restricted to authorized users.\n");
+
+    // // 5.1.9 Ensure at is restricted to authorized users
+    // if (!file_exists("/etc/at.deny") && check_permissions("/etc/at.allow", 0640, 0, 0))
+    //     printf("5.1.9 At is restricted to authorized users.\n");
+    // else
+    //     printf("5.1.9 At is NOT restricted to authorized users.\n");
+
+    test_cron_enabled_and_running();
+    test_crontab_permissions();
+
+    test_cron_directories_permissions("/etc/cron.hourly", "5.1.3");
+    test_cron_directories_permissions("/etc/cron.daily", "5.1.4");
+    test_cron_directories_permissions("/etc/cron.weekly", "5.1.5");
+    test_cron_directories_permissions("/etc/cron.monthly", "5.1.6");
+    test_cron_directories_permissions("/etc/cron.d", "5.1.7");
+
+    test_cron_restricted_to_authorized_users();
+    test_at_restricted_to_authorized_users();
     return 0;
 }
