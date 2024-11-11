@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 #define MIN_UID 1000
 #define MAX_LINE_LENGTH 512
@@ -9,7 +12,8 @@
 #define BLUE "\033[0;34m"
 #define RESET "\033[0m"
 
-int check_command(const char *command, const char *expected_output) {
+int check_command(const char *command, const char *expected_output)
+{
     char buffer[256];
     FILE *pipe = popen(command, "r");
     if (!pipe) {
@@ -71,13 +75,13 @@ int file_exists(const char *filepath)
 //     return strstr(result, expected_output) != NULL;
 // }
 
-int check_permissions(const char *filepath, mode_t mode, uid_t uid, gid_t gid) 
-{
-    struct stat fileStat;
-    if (stat(filepath, &fileStat) != 0) return 0;
-    if (fileStat.st_uid != uid || fileStat.st_gid != gid) return 0;
-    return (fileStat.st_mode & 0777) == mode;
-}
+//int check_permissions(const char *filepath, mode_t mode, uid_t uid, gid_t gid) 
+//{
+//    struct stat fileStat;
+//    if (stat(filepath, &fileStat) != 0) return 0;
+//    if (fileStat.st_uid != uid || fileStat.st_gid != gid) return 0;
+//    return (fileStat.st_mode & 0777) == mode;
+//}
 
 // Tests
 void test_cron_enabled_and_running() //The cron daemon schedules and executes tasks at specified times. This test ensures that cron is active and will continue to run scheduled jobs.
@@ -472,7 +476,7 @@ void test_inactive_password_lock() //Retrieves the INACTIVE setting from useradd
 void test_users_last_password_change() //It retrieves the last password change date for all users from /etc/shadow using the chage command and checks if any user has a future date for their password change.
 {
     printf("Test: 5.5.1.5 Ensure all users last password change date is in the past\n");
-
+    char output[128];
     char command[128];
     snprintf(command, sizeof(command), "awk -F: '{print $1}' /etc/shadow | while read -r usr; do [[ $(date --date=\"$(chage --list \"$usr\" | grep '^Last password change' | cut -d: -f2)\" +%%s) > $(date +%%s) ]] && echo \"$usr last password change was: $(chage --list \"$usr\" | grep '^Last password change' | cut -d: -f2)\"; done");
     FILE *fp = popen(command, "r");
