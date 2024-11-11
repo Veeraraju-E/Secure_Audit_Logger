@@ -9,9 +9,6 @@
 #define BLUE "\033[0;34m"
 #define RESET "\033[0m"
 
-int check_audit_rules(const char *pattern);
-int check_auditctl(const char *pattern);
-
 int check_command(const char *command, const char *expected_output) {
     char buffer[256];
     FILE *pipe = popen(command, "r");
