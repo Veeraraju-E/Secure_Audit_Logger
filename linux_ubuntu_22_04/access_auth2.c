@@ -61,15 +61,15 @@ int file_exists(const char *filepath)
     return access(filepath, F_OK) == 0;
 }
 
-int check_command(const char *command, const char *expected_output) 
-{
-    char result[256];
-    FILE *fp = popen(command, "r");
-    if (fp == NULL) return 0;
-    fgets(result, sizeof(result), fp);
-    pclose(fp);
-    return strstr(result, expected_output) != NULL;
-}
+// int check_command(const char *command, const char *expected_output) 
+// {
+//     char result[256];
+//     FILE *fp = popen(command, "r");
+//     if (fp == NULL) return 0;
+//     fgets(result, sizeof(result), fp);
+//     pclose(fp);
+//     return strstr(result, expected_output) != NULL;
+// }
 
 int check_permissions(const char *filepath, mode_t mode, uid_t uid, gid_t gid) 
 {
