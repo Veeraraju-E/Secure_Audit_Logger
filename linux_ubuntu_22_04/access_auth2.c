@@ -571,6 +571,197 @@ void test_access_to_su_command() //It checks for the pam_wheel.so module in /etc
         printf("\033[1;31mFail: Access to the su command is not restricted\n\033[0m");
     }
 }
+
+
+
+int check_command_5_3(const char *command, const char *expected_output) {
+    char buffer[128];
+    FILE *fp;
+    int status = 0;
+
+    // Open the command for reading.
+    fp = popen(command, "r");
+    if (fp == NULL) {
+        printf("Failed to run command: %s\n", command);
+        return 0;
+    }
+
+    // Read the output line by line and compare with expected_output.
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        if (strstr(buffer, expected_output) != NULL) {
+            status = 1;  // Match found.
+            break;
+        }
+    }
+
+    // Close the file pointer.
+    fclose(fp);
+
+    return status;
+}
+
+void test_permissions_on_etc_ssh_sshd_config() {
+    printf("Test: 5.3.1 Ensure permissions on /etc/ssh/sshd_config are configured\n");
+    if (check_command_5_3("stat /etc/ssh/sshd_config", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0640/-rw-r-----)")) {
+        printf(GREEN "Pass: Permissions on /etc/ssh/sshd_config are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on /etc/ssh/sshd_config are not correctly configured\n" RESET);
+    }
+}
+
+void test_permissions_on_ssh_private_host_key_files() {
+    printf("Test: 5.3.2 Ensure permissions on SSH private host key files are configured\n");
+    if (check_command_5_3("find /etc/ssh -type f -name 'ssh_host_*_key' -exec stat {} \\;", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0600/-rw-------)")) {
+        printf(GREEN "Pass: Permissions on SSH private host key files are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on SSH private host key files are not correctly configured\n" RESET);
+    }
+}
+
+void test_permissions_on_ssh_public_host_key_files() {
+    printf("Test: 5.3.3 Ensure permissions on SSH public host key files are configured\n");
+    if (check_command_5_3("find /etc/ssh -type f -name 'ssh_host_*_key.pub' -exec stat {} \\;", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0644/-rw-r--r--)")) {
+        printf(GREEN "Pass: Permissions on SSH public host key files are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on SSH public host key files are not correctly configured\n" RESET);
+    }
+}
+
+void test_ssh_access_is_limited() {
+    printf("Test: 5.3.4 Ensure SSH access is limited\n");
+    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep -Ei '^\s*(allow|deny)(users|groups)\\s+\\S+'", "allowusers")) {
+        printf(GREEN "Pass: SSH access is correctly limited\n" RESET);
+    } else {
+        printf(RED "Fail: SSH access is not correctly limited\n" RESET);
+    }
+}
+
+void test_ssh_loglevel_is_appropriate() {
+    printf("Test: 5.3.5 Ensure SSH LogLevel is appropriate\n");
+    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep loglevel", "LogLevel VERBOSE") ||
+        check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep loglevel", "loglevel INFO")) {
+        printf(GREEN "Pass: SSH LogLevel is correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: SSH LogLevel is not correctly configured\n" RESET);
+    }
+}
+
+void test_ssh_x11_forwarding_disabled() {
+    printf("Test: 5.3.6 Ensure SSH X11 forwarding is disabled\n");
+    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep -i x11forwarding", "x11forwarding no")) {
+        printf(GREEN "Pass: SSH X11 forwarding is correctly disabled\n" RESET);
+    } else {
+        printf(RED "Fail: SSH X11 forwarding is not correctly disabled\n" RESET);
+    }
+}
+
+void test_ssh_max_auth_tries_configured() {
+    printf("Test: 5.3.7 Ensure SSH MaxAuthTries is configured\n");
+    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep maxauthtries", "MaxAuthTries 3")) {
+        printf(GREEN "Pass: SSH MaxAuthTries is correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: SSH MaxAuthTries is not correctly configured\n" RESET);
+    }
+}
+
+void test_permissions_on_etc_gshadow() {
+    printf("Test: 5.3.8 Ensure permissions on /etc/gshadow are configured\n");
+    if (check_command_5_3("stat /etc/gshadow", "Access: (0640/-rw-r-----) Uid: ( 0/ root) Gid: ( 0/ shadow)")) {
+        printf(GREEN "Pass: Permissions on /etc/gshadow are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on /etc/gshadow are not correctly configured\n" RESET);
+    }
+}
+
+void test_permissions_on_etc_shadow() {
+    printf("Test: 5.3.9 Ensure permissions on /etc/shadow are configured\n");
+    if (check_command_5_3("stat /etc/shadow", "Access: (0640/-rw-r-----) Uid: ( 0/ root) Gid: ( 0/ shadow)")) {
+        printf(GREEN "Pass: Permissions on /etc/shadow are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on /etc/shadow are not correctly configured\n" RESET);
+    }
+}
+
+void test_permissions_on_etc_passwd() {
+    printf("Test: 5.3.10 Ensure permissions on /etc/passwd are configured\n");
+    if (check_command_5_3("stat /etc/passwd", "Access: (0644/-rw-r--r--) Uid: ( 0/ root) Gid: ( 0/ root)")) {
+        printf(GREEN "Pass: Permissions on /etc/passwd are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on /etc/passwd are not correctly configured\n" RESET);
+    }
+}
+
+void test_etc_passwd_is_immutable() {
+    printf("Test: 5.3.11 Ensure /etc/passwd is immutable\n");
+    if (check_command_5_3("lsattr /etc/passwd", "i")) {
+        printf(GREEN "Pass: /etc/passwd is correctly immutable\n" RESET);
+    } else {
+        printf(RED "Fail: /etc/passwd is not correctly immutable\n" RESET);
+    }
+}
+
+void test_etc_shadow_is_immutable() {
+    printf("Test: 5.3.12 Ensure /etc/shadow is immutable\n");
+    if (check_command_5_3("lsattr /etc/shadow", "i")) {
+        printf(GREEN "Pass: /etc/shadow is correctly immutable\n" RESET);
+    } else {
+        printf(RED "Fail: /etc/shadow is not correctly immutable\n" RESET);
+    }
+}
+
+void test_etc_group_is_immutable() {
+    printf("Test: 5.3.13 Ensure /etc/group is immutable\n");
+    if (check_command_5_3("lsattr /etc/group", "i")) {
+        printf(GREEN "Pass: /etc/group is correctly immutable\n" RESET);
+    } else {
+        printf(RED "Fail: /etc/group is not correctly immutable\n" RESET);
+    }
+}
+
+void test_etc_gshadow_is_immutable() {
+    printf("Test: 5.3.14 Ensure /etc/gshadow is immutable\n");
+    if (check_command_5_3("lsattr /etc/gshadow", "i")) {
+        printf(GREEN "Pass: /etc/gshadow is correctly immutable\n" RESET);
+    } else {
+        printf(RED "Fail: /etc/gshadow is not correctly immutable\n" RESET);
+    }
+}
+
+void test_rhosts_files_disabled() {
+    printf("Test: 5.3.15 Ensure .rhosts files are disabled\n");
+    if (check_command_5_3("grep -i '^*.*rhosts' /etc/ssh/sshd_config", "")) {
+        printf(GREEN "Pass: .rhosts files are correctly disabled\n" RESET);
+    } else {
+        printf(RED "Fail: .rhosts files are not correctly disabled\n" RESET);
+    }
+}
+
+void test_ssh_root_login_disabled() {
+    printf("Test: 5.3.16 Ensure SSH root login is disabled\n");
+    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep permitrootlogin", "PermitRootLogin no")) {
+        printf(GREEN "Pass: SSH root login is correctly disabled\n" RESET);
+    } else {
+        printf(RED "Fail: SSH root login is not correctly disabled\n" RESET);
+    }
+}
+
+void test_ssh_protocol_is_2() {
+    printf("Test: 5.3.17 Ensure SSH protocol is set to 2\n");
+    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep protocol", "Protocol 2")) {
+        printf(GREEN "Pass: SSH protocol is correctly set to 2\n" RESET);
+    } else {
+        printf(RED "Fail: SSH protocol is not correctly set to 2\n" RESET);
+    }
+}
+
+void test_etc_ssh_disabled() {
+    printf("Test: 5.3.18 Ensure SSH is disabled if not needed\n");
+    if (check_command_5_3("systemctl is-enabled ssh", "disabled")) {
+        printf(GREEN "Pass: SSH is correctly disabled if not needed\n" RESET);
+    } else {
+        printf(RED "Fail: SSH is not correctly disabled if not needed\n" RESET);
+    }
+}
 //Pujit's additions end here
 //----------------------------------------------------------------------------------------------------------------------------------
 
@@ -634,6 +825,26 @@ int main()
     test_password_reuse_limited();
     test_password_hashing_algorithm_sha512();
 
+    //5.3
+    test_permissions_on_etc_ssh_sshd_config();
+    test_permissions_on_ssh_private_host_key_files();
+    test_permissions_on_ssh_public_host_key_files();
+    test_ssh_access_is_limited();
+    test_ssh_loglevel_is_appropriate();
+    test_ssh_x11_forwarding_disabled();
+    test_ssh_max_auth_tries_configured();
+    test_permissions_on_etc_gshadow();
+    test_permissions_on_etc_shadow();
+    test_permissions_on_etc_passwd();
+    test_etc_passwd_is_immutable();
+    test_etc_shadow_is_immutable();
+    test_etc_group_is_immutable();
+    test_etc_gshadow_is_immutable();
+    test_rhosts_files_disabled();
+    test_ssh_root_login_disabled();
+    test_ssh_protocol_is_2();
+    test_etc_ssh_disabled();
+    
     //5.5
     test_minimum_days_between_password_changes();
     test_password_expiration();
