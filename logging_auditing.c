@@ -8,6 +8,7 @@
 #define RED "\033[0;31m"
 #define BLUE "\033[0;34m"
 #define RESET "\033[0m"
+int AUDITD_INSTALLED = 0;
 
 int check_audit_rules(const char *pattern);
 int check_auditctl(const char *pattern);
@@ -41,8 +42,10 @@ void test_auditd_installed() {
     printf("Test: 4.1.1.1 Ensure auditd is installed (Automated)\n");
     if (check_command("dpkg -s auditd audispd-plugins", "Status: install ok installed")) {
         printf(GREEN "Pass: auditd is installed\n" RESET);
+        AUDITD_INSTALLED = 1;
     } else {
         printf(RED "Fail: auditd is not installed\n" RESET);
+        AUDITD_INSTALLED = 0;
     }
 }
 
@@ -51,7 +54,8 @@ void test_auditd_service_enabled() {
     if (check_command("systemctl is-enabled auditd", "enabled")) {
         printf(GREEN "Pass: auditd service is enabled\n" RESET);
     } else {
-        printf(RED "Fail: auditd service is not enabled\n" RESET);
+        if (AUDITD_INSTALLED) printf(RED "Fail: auditd service is not enabled\n" RESET);
+        else printf(BLUE "auditd is not installed\n" RESET);
     }
 }
 
@@ -60,7 +64,8 @@ void test_auditd_enabled_at_boot() {
     if (!check_command("grep \"^\\s*linux\" /boot/grub/grub.cfg | grep -v \"audit=1\"", "")) {
         printf(GREEN "Pass: auditd is enabled at boot\n" RESET);
     } else {
-        printf(RED "Fail: auditd is not enabled at boot\n" RESET);
+        if (AUDITD_INSTALLED) printf(RED "Fail: auditd is not enabled at boot\n" RESET);
+        else printf(BLUE "auditd is not installed\n" RESET);
     }
 }
 
@@ -69,7 +74,7 @@ void test_audit_log_not_deleted() {
     if (check_command("grep max_log_file_action /etc/audit/auditd.conf", "max_log_file_action = keep_logs")) {
         printf(GREEN "Pass: audit logs are configured to not be deleted\n" RESET);
     } else {
-        printf(RED "Fail: audit logs may be automatically deleted\n" RESET);
+        printf(RED "[IMP] Fail: audit logs may be automatically deleted\n" RESET);
     }
 }
 
@@ -209,7 +214,7 @@ void test_unsuccessful_file_access_attempts() {
     if (pass) {
         printf(GREEN "Pass: Unauthorized file access attempts are collected\n" RESET);
     } else {
-        printf(RED "Fail: Unauthorized file access attempts are not fully collected\n" RESET);
+        printf(RED "[IMP] Fail: Unauthorized file access attempts are not fully collected\n" RESET);
     }
 }
 
@@ -236,7 +241,7 @@ void test_sudoers_scope_collection() {
     if (check_audit_rules("scope") == 0 && check_auditctl("scope") == 0) {
         printf(GREEN "Pass: Changes to sudoers collected\n" RESET);
     } else {
-        printf(RED "Fail: Unable to collect chnages to the sudoers\n" RESET);
+        printf(RED "[IMP] Fail: Unable to collect changes to the sudoers\n" RESET);
     }
 }
 
@@ -245,7 +250,7 @@ void test_sudo_command_execution_collection() {
     if (check_audit_rules("actions") == 0 && check_auditctl("actions") == 0) {
         printf(GREEN "Pass: System admin command executions collected\n" RESET);
     } else {
-        printf(RED "Fail: Unable to collect system admin command executions\n" RESET);
+        printf(RED "[IMP] Fail: Unable to collect system admin command executions\n" RESET);
     }
 }
 
@@ -286,17 +291,16 @@ void test_audit_immutable_configuration() {
 
     char output[MAX_LINE_LENGTH];
     if (fgets(output, sizeof(output), fp) != NULL) {
-        // Remove the newline character if present
         output[strcspn(output, "\n")] = 0;
 
-        // Check if the last line matches the expected "-e 2" string
+        // expected output "-e 2" string
         if (strcmp(output, "-e 2") == 0) {
             printf(GREEN "Pass: Audit configuration is immutable\n" RESET);
         } else {
-            printf(RED "Fail: Audit configuration is mutable.\n" RESET);
+            printf(RED "[IMP] Fail: Audit configuration is mutable.\n" RESET);
         }
     } else {
-        printf(RED "Fail: Audit configuration is mutable\n" RESET);
+        printf(RED "[IMP] Fail: Audit configuration is mutable\n" RESET);
     }
 
     fclose(fp);
