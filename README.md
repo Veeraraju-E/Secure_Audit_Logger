@@ -7,12 +7,12 @@
 
 # Features
 
-- Initial Setup
+- Setup
 - Network-Configuration
 - Logging-and-Auditing
 - Access, Authentication and Authorization
 
-## Initial Setup
+## Setup
 
 Example tests
 
