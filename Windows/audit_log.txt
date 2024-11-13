@@ -1,4 +1,0 @@
-File opened: test.txt
-File closed
-File opened: test.txt
-File closed
