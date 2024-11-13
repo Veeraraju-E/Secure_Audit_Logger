@@ -1,4 +1,5 @@
 main.exe
 main
-/*.exe
-/*.out
+*.exe
+*.out
+*.txt
