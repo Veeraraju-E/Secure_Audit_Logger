@@ -49,7 +49,7 @@ void check_ipv6_status() {
 
 // 3.1 - Unused network protocols
 void test_disable_ipv6() {
-    printf("Test: 3.1.1 Disable IPv6 (Manual)\n");
+    printf("Test: 3.1.1 Disable IPv6 (Automated)\n");
     int is_ipv6_disabled = check_command("grep \"^\\s*linux\" /boot/grub/grub.cfg | grep -v \"ipv6.disable=1\"", "");
     
     if (is_ipv6_disabled) {
