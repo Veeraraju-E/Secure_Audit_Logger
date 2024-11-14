@@ -18,6 +18,22 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+//#include <fstream>
+
+// Function to log failure details to suggestions.txt
+void log_failure(const char *test_case, const char *purpose, const char *implications, const char *suggestion)
+{
+    FILE *file = fopen("suggestions.txt", "a");
+    if (file != NULL)
+    {
+        fprintf(file, "Test Case: %s\n", test_case);
+        fprintf(file, "Purpose: %s\n", purpose);
+        fprintf(file, "Implications: %s\n", implications);
+        fprintf(file, "Suggestion: %s\n\n", suggestion);
+        fclose(file);
+    }
+}
 
 // Checks if a service is running (MacOS version)
 int check_service(const char *service)
@@ -92,6 +108,12 @@ void test_root_account_status()
     else
     {
         printf(RED "Fail: Root account is enabled\n" RESET);
+        log_failure(
+            "1.4.4 Ensure authentication required for single-user mode",
+            "To disable the root account and require authentication for single-user mode",
+            "If enabled, unauthorized users can access single-user mode, posing a security risk.",
+            "Disable the root account by using 'sudo passwd -l root' or equivalent command."
+        );
     }
 }
 
@@ -106,6 +128,12 @@ void test_auditd_installed()
     else
     {
         printf(RED "Fail: auditd is not installed\n" RESET);
+        log_failure(
+            "4.1.1.1 Ensure auditd is installed and running",
+            "To ensure auditd is installed and actively monitoring system activity",
+            "Without auditd, system activities are not logged, reducing system security and audit capabilities.",
+            "Install and start auditd using 'launchctl load -w /System/Library/LaunchDaemons/com.apple.auditd.plist'."
+        );
     }
 }
 
@@ -123,12 +151,25 @@ void test_boot_efi_permissions()
         else
         {
             printf(RED "Fail: boot.efi permissions are not correctly configured\n" RESET);
+            log_failure(
+                "1.4.3 Ensure permissions on bootloader config are configured",
+                "To secure the bootloader by configuring permissions on boot.efi",
+                "Incorrect permissions on boot.efi can allow unauthorized modification, compromising boot security.",
+                "Set permissions on boot.efi to 400 and ensure root owns the file."
+            );
         }
-    } else {
+    }
+    else
+    {
         printf(RED "Fail: boot.efi file does not exist\n" RESET);
+        log_failure(
+            "1.4.3 Ensure permissions on bootloader config are configured",
+            "To ensure the boot.efi file exists and has correct permissions",
+            "If boot.efi is missing, the boot process might be vulnerable to attacks.",
+            "Verify the file path or reinstall the system to restore boot.efi."
+        );
     }
 }
-
 
 void test_permissions_on_bootloader_config()
 {
@@ -145,11 +186,23 @@ void test_permissions_on_bootloader_config()
         else
         {
             printf(RED "Fail: bootloader permissions are incorrectly configured\n" RESET);
+            log_failure(
+                "1.4.1 Ensure permissions on bootloader config are not overridden",
+                "To ensure only root has access to modify the bootloader config",
+                "Incorrect permissions allow unauthorized access to the bootloader config, posing a security risk.",
+                "Set permissions to 400 on /System/Library/CoreServices/boot.efi, with root as owner."
+            );
         }
     }
     else
     {
         printf(RED "Fail: bootloader file does not exist\n" RESET);
+        log_failure(
+            "1.4.1 Ensure permissions on bootloader config are not overridden",
+            "To verify the existence and secure permissions of the bootloader file",
+            "Missing bootloader file can prevent secure boot and may indicate a compromised system.",
+            "Check if the file path is correct, or consider reinstalling the OS if missing."
+        );
     }
 }
 
@@ -166,6 +219,12 @@ void test_bootloader_password()
     else
     {
         printf(RED "Fail: Bootloader password is not set\n" RESET);
+        log_failure(
+            "1.4.2 Ensure bootloader password is set",
+            "To protect the bootloader by setting a bootloader password",
+            "Without a bootloader password, unauthorized users may access or modify the boot process.",
+            "Set a bootloader password via macOS Recovery Mode."
+        );
     }
 }
 
@@ -181,6 +240,12 @@ void test_single_user_mode_authentication()
     else
     {
         printf(RED "Fail: Authentication not required for single-user mode\n" RESET);
+        log_failure(
+            "1.4.4 Ensure authentication required for single-user mode",
+            "To ensure authentication for single-user mode by enabling SIP",
+            "Without SIP enabled, unauthorized access to single-user mode could compromise the system.",
+            "Enable SIP by booting into Recovery Mode and using 'csrutil enable' command."
+        );
     }
 }
 
@@ -196,6 +261,12 @@ void test_auditd_logging()
     else
     {
         printf(RED "Fail: Auditd is not configured to log execve events\n" RESET);
+        log_failure(
+            "1.4.1.3 Ensure auditd is configured to log specific events",
+            "To ensure auditd is logging execve events to track execution of processes",
+            "Without logging execve events, unauthorized or suspicious process executions may go unnoticed.",
+            "Configure auditd to log execve events by adding a rule to monitor execve in the audit configuration."
+        );
     }
 }
 
@@ -214,11 +285,23 @@ void test_permissions_on_log_files()
         else
         {
             printf(RED "Fail: Log file permissions are incorrectly configured\n" RESET);
+            log_failure(
+                "1.4.1.4 Ensure permissions on log files are configured",
+                "To secure the log directory by setting appropriate permissions",
+                "Improper permissions on log files can allow unauthorized access, compromising log integrity.",
+                "Set the permissions on /private/var/log to 700, with root as the owner and group."
+            );
         }
     }
     else
     {
         printf(RED "Fail: Log directory does not exist\n" RESET);
+        log_failure(
+            "1.4.1.4 Ensure permissions on log files are configured",
+            "To verify the existence and secure permissions of the log directory",
+            "A missing log directory can prevent logging, making it difficult to audit events.",
+            "Ensure /private/var/log exists or recreate the directory with appropriate permissions."
+        );
     }
 }
 
@@ -232,6 +315,12 @@ void test_motd_configured()
     else
     {
         printf(RED "Fail: Message of the day is not configured properly\n" RESET);
+        log_failure(
+            "1.7.1 Ensure message of the day is configured properly",
+            "To display important information to users upon login",
+            "Without a properly configured MOTD, users may miss important system messages.",
+            "Edit /etc/motd to include necessary information or notifications for users."
+        );
     }
 }
 
@@ -245,6 +334,12 @@ void test_issue_configured()
     else
     {
         printf(RED "Fail: Local login warning banner is not configured properly\n" RESET);
+        log_failure(
+            "1.7.2 Ensure local login warning banner is configured properly",
+            "To display a security warning banner before local login",
+            "A missing or incorrect login warning banner may reduce user awareness of login policies.",
+            "Edit /etc/issue to include a warning message for local logins."
+        );
     }
 }
 
@@ -258,6 +353,12 @@ void test_issue_net_configured()
     else
     {
         printf(RED "Fail: Remote login warning banner is not configured properly\n" RESET);
+        log_failure(
+            "1.7.3 Ensure remote login warning banner is configured properly",
+            "To display a security warning banner before remote logins",
+            "Without a remote login warning banner, users may miss important security notices.",
+            "Edit /etc/issue.net to include a warning message for remote logins."
+        );
     }
 }
 
@@ -265,7 +366,7 @@ void test_motd_permissions()
 {
     printf("Test: 1.7.4 Ensure permissions on /etc/motd are configured (Automated)\n");
     if (access("/etc/motd", F_OK) == 0)
-    {  // File exists
+    {
         if (check_permissions("/etc/motd", 0644, 0, 0))
         {
             printf(GREEN "Pass: Permissions on /etc/motd are configured correctly\n" RESET);
@@ -273,18 +374,30 @@ void test_motd_permissions()
         else
         {
             printf(RED "Fail: Permissions on /etc/motd are incorrect\n" RESET);
+            log_failure(
+                "1.7.4 Ensure permissions on /etc/motd are configured",
+                "To secure the message of the day file with appropriate permissions",
+                "Incorrect permissions on /etc/motd may allow unauthorized modification of displayed messages.",
+                "Set the permissions on /etc/motd to 644, with root as the owner and group."
+            );
         }
     }
     else
     {
         printf(RED "Fail: /etc/motd does not exist\n" RESET);
+        log_failure(
+            "1.7.4 Ensure permissions on /etc/motd are configured",
+            "To ensure the existence and secure permissions of the MOTD file",
+            "A missing /etc/motd file means the MOTD is not displayed.",
+            "Create /etc/motd or restore it with permissions set to 644."
+        );
     }
 }
 
 void test_issue_permissions()
 {
     printf("Test: 1.7.5 Ensure permissions on /etc/issue are configured (Automated)\n");
-    if (access("/etc/issue", F_OK) == 0) // File exists
+    if (access("/etc/issue", F_OK) == 0)
     {
         if (check_permissions("/etc/issue", 0644, 0, 0))
         {
@@ -293,18 +406,30 @@ void test_issue_permissions()
         else
         {
             printf(RED "Fail: Permissions on /etc/issue are incorrect\n" RESET);
+            log_failure(
+                "1.7.5 Ensure permissions on /etc/issue are configured",
+                "To secure the local login warning banner with appropriate permissions",
+                "Incorrect permissions on /etc/issue may allow unauthorized modification.",
+                "Set permissions on /etc/issue to 644, with root as the owner and group."
+            );
         }
     }
     else
     {
         printf(RED "Fail: /etc/issue does not exist\n" RESET);
+        log_failure(
+            "1.7.5 Ensure permissions on /etc/issue are configured",
+            "To verify the existence and secure permissions of the local login warning banner",
+            "A missing /etc/issue file prevents displaying the local login warning.",
+            "Create /etc/issue or restore it with permissions set to 644."
+        );
     }
 }
 
 void test_issuenet_permissions()
 {
     printf("Test: 1.7.6 Ensure permissions on /etc/issue.net are configured (Automated)\n");
-    if (access("/etc/issue.net", F_OK) == 0)  // File exists
+    if (access("/etc/issue.net", F_OK) == 0)
     {
         if (check_permissions("/etc/issue.net", 0644, 0, 0))
         {
@@ -313,14 +438,25 @@ void test_issuenet_permissions()
         else
         {
             printf(RED "Fail: Permissions on /etc/issue.net are incorrect\n" RESET);
+            log_failure(
+                "1.7.6 Ensure permissions on /etc/issue.net are configured",
+                "To secure the remote login warning banner with appropriate permissions",
+                "Incorrect permissions on /etc/issue.net may allow unauthorized modification.",
+                "Set permissions on /etc/issue.net to 644, with root as the owner and group."
+            );
         }
     }
     else
     {
         printf(RED "Fail: /etc/issue.net does not exist\n" RESET);
+        log_failure(
+            "1.7.6 Ensure permissions on /etc/issue.net are configured",
+            "To verify the existence and secure permissions of the remote login warning banner",
+            "A missing /etc/issue.net file prevents displaying the remote login warning.",
+            "Create /etc/issue.net or restore it with permissions set to 644."
+        );
     }
 }
-
 
 void test_updates_installed()
 {
@@ -335,6 +471,12 @@ void test_updates_installed()
     else
     {
         printf(RED "Fail: Updates available or security software needs to be installed\n" RESET);
+        log_failure(
+            "1.9 Ensure updates, patches, and additional security software are installed",
+            "To ensure that all software is up to date with the latest patches",
+            "Outdated software may contain vulnerabilities that could compromise system security.",
+            "Run 'brew update' and 'brew upgrade' to install available updates."
+        );
     }
 }
 
@@ -344,7 +486,6 @@ void check_ipv6_disabled()
 {
     printf("Test: 3.1.1 Disable IPv6 (Manual)\n");
 
-    // Check if IPv6 is disabled via sysctl
     if (check_command("sysctl net.ipv6.conf.all.disable_ipv6", "net.ipv6.conf.all.disable_ipv6 = 1") &&
         check_command("sysctl net.ipv6.conf.default.disable_ipv6", "net.ipv6.conf.default.disable_ipv6 = 1"))
     {
@@ -353,17 +494,28 @@ void check_ipv6_disabled()
     else
     {
         printf(RED "Fail: IPv6 is not disabled via sysctl\n" RESET);
+        log_failure(
+            "3.1.1 Disable IPv6",
+            "To enhance security by disabling IPv6 when it's not required",
+            "If IPv6 is enabled, it may be vulnerable to certain attacks if not properly configured.",
+            "Disable IPv6 by setting net.ipv6.conf.all.disable_ipv6 and net.ipv6.conf.default.disable_ipv6 to 1 in sysctl settings."
+        );
     }
 
-    // Check sysctl configuration files for IPv6 settings
-    if (check_command("grep -E '^\s*net\.ipv6\.conf\.(all|default)\.disable_ipv6\s*=\s*1\b(\s+#.*)?$' /etc/sysctl.conf /etc/sysctl.d/*.conf", "net.ipv6.conf.all.disable_ipv6 = 1") &&
-        check_command("grep -E '^\s*net\.ipv6\.conf\.(all|default)\.disable_ipv6\s*=\s*1\b(\s+#.*)?$' /etc/sysctl.conf /etc/sysctl.d/*.conf", "net.ipv6.conf.default.disable_ipv6 = 1"))
+    if (check_command("grep -E '^\s*net\\.ipv6\\.conf\\.(all|default)\\.disable_ipv6\\s*=\\s*1\\b(\\s+#.*)?$' /etc/sysctl.conf /etc/sysctl.d/*.conf", "net.ipv6.conf.all.disable_ipv6 = 1") &&
+        check_command("grep -E '^\s*net\\.ipv6\\.conf\\.(all|default)\\.disable_ipv6\\s*=\\s*1\\b(\\s+#.*)?$' /etc/sysctl.conf /etc/sysctl.d/*.conf", "net.ipv6.conf.default.disable_ipv6 = 1"))
     {
         printf(GREEN "Pass: IPv6 is properly configured in sysctl.conf\n" RESET);
     }
     else
     {
         printf(RED "Fail: IPv6 is not properly configured in sysctl.conf\n" RESET);
+        log_failure(
+            "3.1.1 Disable IPv6",
+            "To ensure IPv6 is disabled persistently across reboots",
+            "IPv6 may be re-enabled after a reboot if not correctly set in sysctl configuration files.",
+            "Add net.ipv6.conf.all.disable_ipv6 and net.ipv6.conf.default.disable_ipv6 to /etc/sysctl.conf with a value of 1."
+        );
     }
 }
 
@@ -371,7 +523,6 @@ void check_wireless_disabled()
 {
     printf("Test: 3.1.2 Ensure wireless interfaces are disabled (Automated)\n");
 
-    // Check if wireless interfaces are disabled
     if (check_command("ifconfig en0 | grep -q 'status: inactive'", "status: inactive"))
     {
         printf(GREEN "Pass: Wireless interface is disabled\n" RESET);
@@ -379,6 +530,12 @@ void check_wireless_disabled()
     else
     {
         printf(RED "Fail: Wireless interface is not disabled\n" RESET);
+        log_failure(
+            "3.1.2 Ensure wireless interfaces are disabled",
+            "To prevent unauthorized access via wireless networks",
+            "If wireless interfaces are enabled, they may be exploited if not secured properly.",
+            "Disable wireless interfaces by turning off Wi-Fi or configuring the interface as inactive."
+        );
     }
 }
 
@@ -387,15 +544,19 @@ void test_module_disabled(const char *module_name)
     char command[512];
     printf("Test: Ensure %s is disabled (Automated)\n", module_name);
 
-    // Check if the module is installed (using kextstat instead of modprobe)
     snprintf(command, sizeof(command), "kextstat | grep %s", module_name);
     if (check_command(command, module_name))
     {
         printf(RED "Fail: %s is not disabled, it is loaded as a kext\n" RESET, module_name);
+        log_failure(
+            "Ensure module is disabled",
+            "To prevent loading of unwanted modules for security",
+            "Loaded modules may present security risks if not required by the system.",
+            "Unload the module by disabling it in kernel extensions configuration."
+        );
         return;
     }
 
-    // Ensure that the module is disabled via kextload (equivalent to modprobe -n -v)
     snprintf(command, sizeof(command), "kextload -n %s", module_name);
     if (check_command(command, "not found"))
     {
@@ -404,6 +565,12 @@ void test_module_disabled(const char *module_name)
     else
     {
         printf(RED "Fail: %s is not disabled properly\n" RESET, module_name);
+        log_failure(
+            "Ensure module is disabled",
+            "To verify module is not loaded inadvertently",
+            "Improperly disabled modules can still be loaded if not configured correctly.",
+            "Ensure that %s is properly disabled by updating kernel configuration settings."
+        );
     }
 }
 
@@ -412,18 +579,30 @@ void check_ufw_installed()
     FILE *fp = popen("pkgutil --pkg-info=com.apple.iptables", "r");
     if (fp == NULL)
     {
-        printf("\033[31mFAIL: ufw is not installed\033[0m\n");
+        printf(RED "Fail: ufw is not installed\n" RESET);
+        log_failure(
+            "Ensure ufw is installed",
+            "To have a firewall in place for network security",
+            "Without ufw, the system lacks basic firewall capabilities, increasing exposure to network attacks.",
+            "Install ufw using the package manager to enable firewall protections."
+        );
         return;
     }
 
     char output[256];
     if (fgets(output, sizeof(output), fp) != NULL)
     {
-        printf("\033[32mPASS: ufw is installed\033[0m\n");
+        printf(GREEN "Pass: ufw is installed\n" RESET);
     }
     else
     {
-        printf("\033[31mFAIL: ufw is not installed\033[0m\n");
+        printf(RED "Fail: ufw is not installed\n" RESET);
+        log_failure(
+            "Ensure ufw is installed",
+            "To enhance security with firewall protections",
+            "Lack of ufw means no firewall rules to control network traffic.",
+            "Use 'brew install ufw' to install the firewall."
+        );
     }
     fclose(fp);
 }
@@ -433,18 +612,24 @@ void check_iptables_persistent()
     FILE *fp = popen("pkgutil --pkg-info=com.apple.iptables-persistent", "r");
     if (fp == NULL)
     {
-        printf("\033[32mPASS: iptables-persistent is not installed\033[0m\n");
+        printf(GREEN "Pass: iptables-persistent is not installed\n" RESET);
         return;
     }
 
     char output[256];
     if (fgets(output, sizeof(output), fp) != NULL)
     {
-        printf("\033[31mFAIL: iptables-persistent is installed\033[0m\n");
+        printf(RED "Fail: iptables-persistent is installed\n" RESET);
+        log_failure(
+            "Ensure iptables-persistent is not installed",
+            "To prevent unwanted persistence of iptables rules",
+            "iptables-persistent may retain outdated rules that compromise security.",
+            "Uninstall iptables-persistent to remove persistent firewall rule storage."
+        );
     }
     else
     {
-        printf("\033[32mPASS: iptables-persistent is not installed\033[0m\n");
+        printf(GREEN "Pass: iptables-persistent is not installed\n" RESET);
     }
     fclose(fp);
 }
@@ -454,18 +639,30 @@ void check_ufw_service_enabled()
     FILE *fp = popen("launchctl list | grep -w com.apple.iptables", "r");
     if (fp == NULL)
     {
-        printf("\033[31mFAIL: ufw service is not enabled\033[0m\n");
+        printf(RED "Fail: ufw service is not enabled\n" RESET);
+        log_failure(
+            "Ensure ufw service is enabled",
+            "To ensure the firewall service is actively managing traffic",
+            "Without an active ufw service, firewall rules may not be enforced, leaving the system vulnerable.",
+            "Enable the ufw service using 'launchctl load /Library/LaunchDaemons/com.apple.iptables.plist'."
+        );
         return;
     }
 
     char output[256];
     if (fgets(output, sizeof(output), fp) != NULL)
     {
-        printf("\033[32mPASS: ufw service is enabled\033[0m\n");
+        printf(GREEN "Pass: ufw service is enabled\n" RESET);
     }
     else
     {
-        printf("\033[31mFAIL: ufw service is not enabled\033[0m\n");
+        printf(RED "Fail: ufw service is not enabled\n" RESET);
+        log_failure(
+            "Ensure ufw service is enabled",
+            "To ensure the firewall service is active",
+            "Inactive ufw service results in no protection by the firewall.",
+            "Enable ufw service by loading the associated launch agent."
+        );
     }
     fclose(fp);
 }
@@ -475,35 +672,59 @@ void check_ufw_default_deny_policy()
     FILE *fp = popen("sudo pfctl -sr | grep 'block' | grep 'in' ", "r");
     if (fp == NULL)
     {
-        printf("\033[31mFAIL: Default deny policy is not set for incoming traffic\033[0m\n");
+        printf(RED "Fail: Default deny policy is not set for incoming traffic\n" RESET);
+        log_failure(
+            "Ensure default deny policy is set for incoming traffic",
+            "To block all incoming traffic by default, only allowing essential connections",
+            "Without a default deny policy, unwanted or malicious incoming traffic may bypass the firewall.",
+            "Ensure the pfctl rules set a default deny for incoming traffic by verifying the pf configuration."
+        );
         return;
     }
 
     char output[256];
     if (fgets(output, sizeof(output), fp) != NULL)
     {
-        printf("\033[32mPASS: Default deny policy is set for incoming traffic\033[0m\n");
+        printf(GREEN "Pass: Default deny policy is set for incoming traffic\n" RESET);
     }
     else
     {
-        printf("\033[31mFAIL: Default deny policy is not set for incoming traffic\033[0m\n");
+        printf(RED "Fail: Default deny policy is not set for incoming traffic\n" RESET);
+        log_failure(
+            "Ensure default deny policy is set for incoming traffic",
+            "To restrict all incoming traffic unless explicitly allowed",
+            "Failing to block unwanted traffic increases system vulnerability to attacks.",
+            "Check pf rules and make sure 'block in' is set for incoming traffic."
+        );
     }
     fclose(fp);
 
     fp = popen("sudo pfctl -sr | grep 'block' | grep 'out' ", "r");
     if (fp == NULL)
     {
-        printf("\033[31mFAIL: Default deny policy is not set for outgoing traffic\033[0m\n");
+        printf(RED "Fail: Default deny policy is not set for outgoing traffic\n" RESET);
+        log_failure(
+            "Ensure default deny policy is set for outgoing traffic",
+            "To block all outgoing traffic by default, allowing only specific essential outbound connections",
+            "Outgoing traffic should be blocked to prevent unauthorized data leakage.",
+            "Verify pf rules to ensure 'block out' is configured for outgoing traffic."
+        );
         return;
     }
 
     if (fgets(output, sizeof(output), fp) != NULL)
     {
-        printf("\033[32mPASS: Default deny policy is set for outgoing traffic\033[0m\n");
+        printf(GREEN "Pass: Default deny policy is set for outgoing traffic\n" RESET);
     }
     else
     {
-        printf("\033[31mFAIL: Default deny policy is not set for outgoing traffic\033[0m\n");
+        printf(RED "Fail: Default deny policy is not set for outgoing traffic\n" RESET);
+        log_failure(
+            "Ensure default deny policy is set for outgoing traffic",
+            "To prevent unauthorized data from leaving the system",
+            "Failing to block outgoing traffic could lead to data leakage or connections to malicious sites.",
+            "Check pf rules to confirm that 'block out' is set for outgoing traffic."
+        );
     }
     fclose(fp);
 }
@@ -513,18 +734,30 @@ void check_nftables_installed()
     FILE *fp = popen("pkgutil --pkg-info=com.apple.nftables", "r");
     if (fp == NULL)
     {
-        printf("\033[31mFAIL: nftables is not installed\033[0m\n");
+        printf(RED "Fail: nftables is not installed\n" RESET);
+        log_failure(
+            "Ensure nftables is installed",
+            "To provide a modern and secure firewall configuration",
+            "Without nftables, the system may lack essential packet filtering features.",
+            "Install nftables by using the appropriate package manager for your distribution."
+        );
         return;
     }
 
     char output[256];
     if (fgets(output, sizeof(output), fp) != NULL)
     {
-        printf("\033[32mPASS: nftables is installed\033[0m\n");
+        printf(GREEN "Pass: nftables is installed\n" RESET);
     }
     else
     {
-        printf("\033[31mFAIL: nftables is not installed\033[0m\n");
+        printf(RED "Fail: nftables is not installed\n" RESET);
+        log_failure(
+            "Ensure nftables is installed",
+            "To use modern firewall management",
+            "Without nftables, the system may be vulnerable due to lack of packet filtering functionality.",
+            "Install nftables using 'brew install nftables' or the package manager of your OS."
+        );
     }
     fclose(fp);
 }
@@ -534,21 +767,34 @@ void check_nftables_service_enabled()
     FILE *fp = popen("launchctl list | grep -w com.apple.nftables", "r");
     if (fp == NULL)
     {
-        printf("\033[31mFAIL: nftables service is not enabled\033[0m\n");
+        printf(RED "Fail: nftables service is not enabled\n" RESET);
+        log_failure(
+            "Ensure nftables service is enabled",
+            "To ensure that nftables is actively filtering traffic on the system",
+            "Without an active nftables service, the firewall rules won't be enforced, leaving the system exposed.",
+            "Enable nftables by loading the service using 'launchctl load /Library/LaunchDaemons/com.apple.nftables.plist'."
+        );
         return;
     }
 
     char output[256];
     if (fgets(output, sizeof(output), fp) != NULL)
     {
-        printf("\033[32mPASS: nftables service is enabled\033[0m\n");
+        printf(GREEN "Pass: nftables service is enabled\n" RESET);
     }
     else
     {
-        printf("\033[31mFAIL: nftables service is not enabled\033[0m\n");
+        printf(RED "Fail: nftables service is not enabled\n" RESET);
+        log_failure(
+            "Ensure nftables service is enabled",
+            "To make sure nftables is running to protect the system",
+            "Inactive nftables service means firewall protection isn't actively filtering traffic.",
+            "Enable nftables by loading the associated launch agent to ensure firewall rules are enforced."
+        );
     }
     fclose(fp);
 }
+
 
 
 int main()
