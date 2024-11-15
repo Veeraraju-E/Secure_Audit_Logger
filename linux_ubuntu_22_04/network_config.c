@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define GREEN "\033[0;32m"
 #define RED "\033[0;31m"
@@ -51,7 +52,7 @@ void check_ipv6_status() {
 void test_disable_ipv6() {
     printf("Test: 3.1.1 Disable IPv6 (Automated)\n");
     int is_ipv6_disabled = check_command("grep \"^\\s*linux\" /boot/grub/grub.cfg | grep -v \"ipv6.disable=1\"", "");
-    
+
     if (is_ipv6_disabled) {
         printf(BLUE "IPv6 is not disabled in GRUB. Proceeding with sysctl checks.\n" RESET);
 
@@ -59,7 +60,7 @@ void test_disable_ipv6() {
             check_command("sysctl net.ipv6.conf.default.disable_ipv6", "net.ipv6.conf.default.disable_ipv6 = 1") &&
             check_command("grep -E \"^\\s*net\\.ipv6\\.conf\\.(all|default)\\.disable_ipv6\\s*=\\s*1\\b\" /etc/sysctl.conf /etc/sysctl.d/*.conf", "net.ipv6.conf.all.disable_ipv6 = 1") &&
             check_command("grep -E \"^\\s*net\\.ipv6\\.conf\\.(all|default)\\.disable_ipv6\\s*=\\s*1\\b\" /etc/sysctl.conf /etc/sysctl.d/*.conf", "net.ipv6.conf.default.disable_ipv6 = 1")) {
-            printf(GREEN "Pass: IPv6 is disabled\n" RESET);
+            printf(GREEN "Pass: Done with sysctl checks. IPv6 is disabled\n" RESET);
         } else {
             printf(RED "Fail: IPv6 is not fully disabled\n" RESET);
             printf("Action: To disable IPv6:\n");
@@ -82,9 +83,9 @@ void test_disable_wireless_interfaces() {
     // Check if nmcli is available and check radio status
     if (system("command -v nmcli >/dev/null 2>&1") == 0) {
         if (check_command("nmcli radio all", "disabled")) {
-            printf(GREEN "Pass: Wireless is not enabled\n" RESET);
+            printf(GREEN "Pass: Wireless interfaces are disabled\n" RESET);
         } else {
-            printf(RED "Fail: Wireless is enabled\n" RESET);
+            printf(RED "Fail: Wireless interfaces are enabled\n" RESET);
         }
     } else {
         // Check manually if there are any wireless interfaces
@@ -110,7 +111,7 @@ void test_disable_wireless_interfaces() {
             }
             pclose(fp);
             if (all_disabled) {
-                printf(GREEN "Pass: Wireless is not enabled\n" RESET);
+                printf(GREEN "Pass: Wireless interfaces are not enabled\n" RESET);
             } else {
                 printf(RED "Fail: Some wireless interfaces are enabled\n" RESET);
                 printf("Action: To disable wireless interfaces:\n");
@@ -191,7 +192,7 @@ void test_ip_forwarding_disabled() {
 }
 
 // 3.3 Network Parameters between Host and Router
-void check_source_routed_packets() {
+void test_source_routed_packets() {
     printf("Test 3.3.1: Ensure source-routed packets are not accepted (Automated)\n");
 
     // Check IPv4 source-routing settings
@@ -210,7 +211,7 @@ void check_source_routed_packets() {
     }
 
     // Check if IPv6 is enabled
-    check_ipv6_status();
+    // check_ipv6_status();
     if (check_command("sysctl net.ipv6.conf.all.accept_source_route", "net.ipv6.conf.all.accept_source_route = 0") &&
         check_command("sysctl net.ipv6.conf.default.accept_source_route", "net.ipv6.conf.default.accept_source_route = 0")) {
         printf(GREEN "Pass: IPv6 source-routed packets are not accepted\n" RESET);
@@ -224,7 +225,7 @@ int is_ipv6_enabled() {
            !check_command("sysctl net.ipv6.conf.default.disable_ipv6", "net.ipv6.conf.default.disable_ipv6 = 1");
 }
 
-void check_icmp_redirects() {
+void test_icmp_redirects() {
     printf("Test 3.3.2: Ensure ICMP redirects are not accepted (Automated)\n");
 
     // Check IPv4 ICMP redirect settings
@@ -242,7 +243,7 @@ void check_icmp_redirects() {
     }
 
     // Check if IPv6 is enabled
-    check_ipv6_status();
+    // check_ipv6_status();
     if (check_command("sysctl net.ipv6.conf.all.accept_redirects", "net.ipv6.conf.all.accept_redirects = 0") &&
         check_command("sysctl net.ipv6.conf.default.accept_redirects", "net.ipv6.conf.default.accept_redirects = 0")) {
         printf(GREEN "Pass: IPv6 ICMP redirects are not accepted\n" RESET);
@@ -251,7 +252,7 @@ void check_icmp_redirects() {
     }
 }
 
-void check_suspicious_packet_logging() {
+void test_suspicious_packet_logging() {
     printf("Test 3.3.3: Ensure suspicious packets are logged (Automated)\n");
 
     // Check if suspicious packets are logged in IPv4
@@ -267,7 +268,7 @@ void check_suspicious_packet_logging() {
     }
 }
 
-void check_bogus_icmp_ignore() {
+void test_bogus_icmp_ignore() {
     printf("Test 3.3.4: Ensure bogus ICMP responses are ignored (Automated)\n");
 
     // Check if bogus ICMP responses are ignored
@@ -281,17 +282,24 @@ int main() {
 
     // 3.1 - Disable unused network protocols
     test_disable_ipv6();	// 3.1.1
+    sleep(1);
     test_disable_wireless_interfaces();  // 3.1.2
+    sleep(1);
 
     // 3.2 - Host Network Params
     test_packet_redirect_sending_disabled(); // 3.2.1
+    sleep(1);
     test_ip_forwarding_disabled();           // 3.2.2
+    sleep(1);
 
     // 3.3 - Host and Router Params
-    check_ipv6_status();			// 3.3.1
-    check_source_routed_packets();		// 3.3.2
-    check_icmp_redirects();			// 3.3.3
-    check_suspicious_packet_logging();		// 3.3.4
-    check_bogus_icmp_ignore();			// 3.3.5
+    // check_ipv6_status();			// 3.3.1
+    test_source_routed_packets();		// 3.3.2
+    sleep(1);
+    test_icmp_redirects();			// 3.3.3
+    sleep(1);
+    test_suspicious_packet_logging();		// 3.3.4
+    sleep(1);
+    test_bogus_icmp_ignore();			// 3.3.5
     return 0;
 }
