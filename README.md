@@ -231,10 +231,7 @@ Secure_Audit_Logger/
 │       └── access_control.c
 └── scripts/
     ├── run_audit.sh            # Linux/macOS audit script
-    ├── run_audit.ps1           # Windows audit script
-    ├── install_dependencies.sh # Dependencies for Linux/macOS
-    ── install_dependencies.sh # Dependencies for Linux/macOS
-    └──
+    └── run_audit.ps1           # Windows audit script
 ```
 
 ## Contributing
@@ -258,7 +255,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - CIS Benchmarks for security guidelines
 - Linux Audit System documentation
 - System logging best practices
-
-```
-
-```
