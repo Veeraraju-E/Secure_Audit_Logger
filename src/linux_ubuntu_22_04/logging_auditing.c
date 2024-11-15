@@ -2,13 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <src/common/colors.h>
 
 #define MIN_UID 1000
 #define MAX_LINE_LENGTH 512
-#define GREEN "\033[0;32m"
-#define RED "\033[0;31m"
-#define BLUE "\033[0;34m"
-#define RESET "\033[0m"
+
 int AUDITD_INSTALLED = 0;
 
 int check_audit_rules(const char *pattern);

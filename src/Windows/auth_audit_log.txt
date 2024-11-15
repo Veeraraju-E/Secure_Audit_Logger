@@ -1,0 +1,2 @@
+Authorization failed for user.
+File open denied due to invalid credentials.

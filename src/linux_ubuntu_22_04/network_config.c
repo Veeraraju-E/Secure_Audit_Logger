@@ -2,11 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#define GREEN "\033[0;32m"
-#define RED "\033[0;31m"
-#define BLUE "\033[0;34m"
-#define RESET "\033[0m"
+#include <src/common/colors.h>
 
 int check_command(const char *command, const char *expected_output) {
     char buffer[256];

@@ -1,5 +1,50 @@
-main.exe
-main
+# Compiled binaries
+bin/*
+!bin/.gitkeep
+
+# Audit results
+audit_results/*
+!audit_results/.gitkeep
+
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects
+*.so
+*.so.*
+
+# Executables
 *.exe
 *.out
-*.txt
+
+# Debug files
+*.dSYM/
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build directory
+build/
+
+# Dependency directories
+node_modules/
+vendor/
+
+# Log files
+*.log
