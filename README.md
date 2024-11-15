@@ -100,6 +100,9 @@ choco install -y mingw make
 
 ### Building and Running
 
+You can find more OS-Specific details in docs/[os].md
+Here are some general instructions
+
 1. Clone the repository:
 
 ```bash
