@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define MIN_UID 1000
 #define MAX_LINE_LENGTH 512
@@ -17,7 +18,7 @@ int check_command(const char *command, const char *expected_output) {
     char buffer[256];
     FILE *pipe = popen(command, "r");
     if (!pipe) {
-        perror("popen failed");
+        perror("Unable to run test as popen failed");
         return -1;
     }
 
@@ -445,39 +446,64 @@ void skip_test(const char *test_name) {
 int main() {
     // 4.1 - Configure System Accounting
     test_auditd_installed();    // 4.1.1.1
+    sleep(1);
     test_auditd_service_enabled();  // 4.1.1.2
+    sleep(1);
     test_auditd_enabled_at_boot();  // 4.1.1.3
+    sleep(1);
     skip_test("4.1.1.4 Ensure audit_backlog_limit is sufficient (Manual)"); // 4.1.1.4
+    sleep(1);
     skip_test("4.1.2.1 Ensure audit log storage size is configured (Manual)");  // 4.1.2.1
+    sleep(1);
     test_audit_log_not_deleted();   // 4.1.2.2
+    sleep(1);
     test_audit_logs_on_full();  // 4.1.2.3
+    sleep(1);
     // test_time_change_events_collected();    // 4.1.3
     test_user_group_info_events();  // 4.1.4
+    sleep(1);
     test_network_environment_events();  // 4.1.5
+    sleep(1);
     // test_mac_policy_events();   // 4.1.6
     test_login_logout_events(); // 4.1.7
+    sleep(1);
     test_session_initiation_events();   // 4.1.8
+    sleep(1);
     test_permission_modification_events();  // 4.1.9
+    sleep(1);
     test_unsuccessful_file_access_attempts();   // 4.1.10
+    sleep(1);
     skip_test("4.1.11 Ensure use of privileged commands is collected (Manual)");    // 4.1.11
+    sleep(1);
     test_mounts_collection();   // 4.1.12
+    sleep(1);
     test_file_deletion_collection();    // 4.1.13
+    sleep(1);
     test_sudoers_scope_collection();    // 4.1.14
+    sleep(1);
     test_sudo_command_execution_collection();   // 4.1.15
+    sleep(1);
     // test_kernel_module_loading_collection();    // 4.1.16
     test_audit_immutable_configuration();   // 4.1.17
+    sleep(2);
 
     // 4.2 - Configure Logging
     test_rsyslog_installed();
+    sleep(1);
     test_rsyslog_service_enabled();
+    sleep(1);
     skip_test("4.2.1.3 Ensure logging is configured (Manual)");
+    sleep(1);
     test_rsyslog_default_permissions();
+    sleep(1);
     skip_test("4.2.1.5 Ensure rsyslog is configured to send logs to a remote log host (Manual)");
+    sleep(1);
     skip_test("4.2.1.6 Ensure remote rsyslog messages are only accepted on designated log hosts (Manual)");
+    sleep(1);
     // test_journald_forward_to_rsyslog();
     // test_journald_compression();
     // test_journald_persistent_storage();
     skip_test("4.2.3 Ensure permissions on all logfiles are configured (Manual)");
-    
+
     return 0;
 }
