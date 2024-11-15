@@ -21,6 +21,15 @@
 #include <fcntl.h>
 //#include <fstream>
 
+FILE *results_file;
+#define printf(fmt, ...)                        \
+    do                                          \
+    {                                           \
+        fprintf(stdout, fmt, ##__VA_ARGS__);    \
+        if (results_file)                       \
+            fprintf(results_file, fmt, ##__VA_ARGS__); \
+    } while (0)
+
 // Function to log failure details to suggestions.txt
 void log_failure(const char *test_case, const char *purpose, const char *implications, const char *suggestion)
 {
@@ -253,8 +262,8 @@ void test_auditd_logging()
 {
     printf("Test: 1.4.1.3 Ensure auditd is configured to log specific events (Automated)\n");
 
-    // Check if auditd is configured to log for specific events in macOS
-    if (system("auditctl -l | grep -q 'execve'") == 0)
+    // Check if auditd is configured to log execve events in macOS
+    if (system("grep -q 'execve' /etc/security/audit_control") == 0)
     {
         printf(GREEN "Pass: Auditd is configured to log execve events\n" RESET);
     }
@@ -265,7 +274,7 @@ void test_auditd_logging()
             "1.4.1.3 Ensure auditd is configured to log specific events",
             "To ensure auditd is logging execve events to track execution of processes",
             "Without logging execve events, unauthorized or suspicious process executions may go unnoticed.",
-            "Configure auditd to log execve events by adding a rule to monitor execve in the audit configuration."
+            "Add 'execve' to the flags in /etc/security/audit_control and restart the audit daemon using 'sudo audit -s'."
         );
     }
 }
@@ -486,35 +495,20 @@ void check_ipv6_disabled()
 {
     printf("Test: 3.1.1 Disable IPv6 (Manual)\n");
 
-    if (check_command("sysctl net.ipv6.conf.all.disable_ipv6", "net.ipv6.conf.all.disable_ipv6 = 1") &&
-        check_command("sysctl net.ipv6.conf.default.disable_ipv6", "net.ipv6.conf.default.disable_ipv6 = 1"))
+    // Check if IPv6 is disabled for all network services
+    if (check_command("networksetup -listallnetworkservices | grep -v '*' | xargs -I {} networksetup -getinfo {} | grep -q 'IPv6: Off'", "IPv6: Off"))
     {
-        printf(GREEN "Pass: IPv6 is disabled via sysctl\n" RESET);
+        printf(GREEN "Pass: IPv6 is disabled on all network services\n" RESET);
     }
     else
     {
-        printf(RED "Fail: IPv6 is not disabled via sysctl\n" RESET);
+        printf(RED "Fail: IPv6 is not disabled on all network services\n" RESET);
         log_failure(
             "3.1.1 Disable IPv6",
             "To enhance security by disabling IPv6 when it's not required",
             "If IPv6 is enabled, it may be vulnerable to certain attacks if not properly configured.",
-            "Disable IPv6 by setting net.ipv6.conf.all.disable_ipv6 and net.ipv6.conf.default.disable_ipv6 to 1 in sysctl settings."
-        );
-    }
-
-    if (check_command("grep -E '^\s*net\\.ipv6\\.conf\\.(all|default)\\.disable_ipv6\\s*=\\s*1\\b(\\s+#.*)?$' /etc/sysctl.conf /etc/sysctl.d/*.conf", "net.ipv6.conf.all.disable_ipv6 = 1") &&
-        check_command("grep -E '^\s*net\\.ipv6\\.conf\\.(all|default)\\.disable_ipv6\\s*=\\s*1\\b(\\s+#.*)?$' /etc/sysctl.conf /etc/sysctl.d/*.conf", "net.ipv6.conf.default.disable_ipv6 = 1"))
-    {
-        printf(GREEN "Pass: IPv6 is properly configured in sysctl.conf\n" RESET);
-    }
-    else
-    {
-        printf(RED "Fail: IPv6 is not properly configured in sysctl.conf\n" RESET);
-        log_failure(
-            "3.1.1 Disable IPv6",
-            "To ensure IPv6 is disabled persistently across reboots",
-            "IPv6 may be re-enabled after a reboot if not correctly set in sysctl configuration files.",
-            "Add net.ipv6.conf.all.disable_ipv6 and net.ipv6.conf.default.disable_ipv6 to /etc/sysctl.conf with a value of 1."
+            "Disable IPv6 on all network interfaces using the command:\n"
+            "'networksetup -setv6off <networkservice>' for each service listed in 'networksetup -listallnetworkservices'."
         );
     }
 }
@@ -544,94 +538,102 @@ void test_module_disabled(const char *module_name)
     char command[512];
     printf("Test: Ensure %s is disabled (Automated)\n", module_name);
 
-    snprintf(command, sizeof(command), "kextstat | grep %s", module_name);
+    // Check if the module is loaded as a kernel extension
+    snprintf(command, sizeof(command), "kextstat | grep -i %s", module_name);
     if (check_command(command, module_name))
     {
-        printf(RED "Fail: %s is not disabled, it is loaded as a kext\n" RESET, module_name);
+        printf(RED "Fail: %s is loaded as a kernel extension\n" RESET, module_name);
         log_failure(
             "Ensure module is disabled",
             "To prevent loading of unwanted modules for security",
             "Loaded modules may present security risks if not required by the system.",
-            "Unload the module by disabling it in kernel extensions configuration."
+            "Unload the module by disabling it in the kernel extensions configuration or removing it from /Library/Extensions."
         );
         return;
     }
 
-    snprintf(command, sizeof(command), "kextload -n %s", module_name);
-    if (check_command(command, "not found"))
+    // Verify the module is not present in available kernel extensions
+    snprintf(command, sizeof(command), "kmutil showloaded 2>/dev/null | grep -i %s", module_name);
+    if (!check_command(command, module_name))
     {
-        printf(GREEN "Pass: %s is disabled\n" RESET, module_name);
+        printf(GREEN "Pass: %s is not loaded\n" RESET, module_name);
     }
     else
     {
-        printf(RED "Fail: %s is not disabled properly\n" RESET, module_name);
+        printf(RED "Fail: %s is still available as a kernel extension\n" RESET, module_name);
         log_failure(
             "Ensure module is disabled",
-            "To verify module is not loaded inadvertently",
-            "Improperly disabled modules can still be loaded if not configured correctly.",
-            "Ensure that %s is properly disabled by updating kernel configuration settings."
+            "To ensure the module is not inadvertently loaded in the future",
+            "Kernel extensions that are not properly removed may still load during boot or manually.",
+            "Remove the module file from /Library/Extensions or /System/Library/Extensions and update the kext cache."
         );
     }
 }
 
 void check_ufw_installed()
 {
-    FILE *fp = popen("pkgutil --pkg-info=com.apple.iptables", "r");
+    printf("Test: Ensure a firewall is configured (Automated)\n");
+
+    // Check if macOS Application Firewall is enabled
+    FILE *fp = popen("/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate", "r");
     if (fp == NULL)
     {
-        printf(RED "Fail: ufw is not installed\n" RESET);
+        printf(RED "Fail: Unable to determine firewall state\n" RESET);
         log_failure(
-            "Ensure ufw is installed",
-            "To have a firewall in place for network security",
-            "Without ufw, the system lacks basic firewall capabilities, increasing exposure to network attacks.",
-            "Install ufw using the package manager to enable firewall protections."
+            "Ensure a firewall is configured",
+            "To protect the system from unauthorized network access",
+            "Without a configured firewall, the system is vulnerable to external attacks.",
+            "Enable the macOS built-in firewall: 'sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on'."
         );
         return;
     }
 
     char output[256];
-    if (fgets(output, sizeof(output), fp) != NULL)
+    if (fgets(output, sizeof(output), fp) != NULL && strstr(output, "enabled"))
     {
-        printf(GREEN "Pass: ufw is installed\n" RESET);
+        printf(GREEN "Pass: macOS built-in firewall is enabled\n" RESET);
     }
     else
     {
-        printf(RED "Fail: ufw is not installed\n" RESET);
+        printf(RED "Fail: macOS built-in firewall is disabled\n" RESET);
         log_failure(
-            "Ensure ufw is installed",
-            "To enhance security with firewall protections",
-            "Lack of ufw means no firewall rules to control network traffic.",
-            "Use 'brew install ufw' to install the firewall."
+            "Ensure a firewall is configured",
+            "To ensure network security and block unauthorized access",
+            "A disabled firewall exposes the system to potential network threats.",
+            "Enable the macOS built-in firewall using: 'sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on'."
         );
     }
-    fclose(fp);
+    pclose(fp);
 }
 
 void check_iptables_persistent()
 {
-    FILE *fp = popen("pkgutil --pkg-info=com.apple.iptables-persistent", "r");
+    printf("Test: Ensure unauthorized persistent pf rules are not present (Automated)\n");
+
+    // Check if the pf configuration file exists
+    FILE *fp = fopen("/etc/pf.conf", "r");
     if (fp == NULL)
     {
-        printf(GREEN "Pass: iptables-persistent is not installed\n" RESET);
+        printf(GREEN "Pass: No pf rules configured (pf.conf does not exist)\n" RESET);
         return;
     }
+    fclose(fp);
 
-    char output[256];
-    if (fgets(output, sizeof(output), fp) != NULL)
+    // Verify if pf.conf contains any unauthorized rules
+    if (system("grep -q -E 'block|pass' /etc/pf.conf") == 0)
     {
-        printf(RED "Fail: iptables-persistent is installed\n" RESET);
+        printf(RED "Fail: pf.conf contains rules; check for unauthorized configurations\n" RESET);
         log_failure(
-            "Ensure iptables-persistent is not installed",
-            "To prevent unwanted persistence of iptables rules",
-            "iptables-persistent may retain outdated rules that compromise security.",
-            "Uninstall iptables-persistent to remove persistent firewall rule storage."
+            "Ensure unauthorized persistent pf rules are not present",
+            "To verify that no unintended rules are being persistently applied to the firewall",
+            "Unauthorized rules may compromise system security by allowing unwanted network traffic.",
+            "Review and clean up /etc/pf.conf to ensure only intended rules are present."
         );
     }
     else
     {
-        printf(GREEN "Pass: iptables-persistent is not installed\n" RESET);
+        printf(GREEN "Pass: No unauthorized persistent pf rules found\n" RESET);
     }
-    fclose(fp);
 }
 
 void check_ufw_service_enabled()
@@ -799,6 +801,12 @@ void check_nftables_service_enabled()
 
 int main()
 {
+    results_file = fopen("log.txt", "w");
+    if (results_file == NULL)
+    {
+        fprintf(stderr, "Error: Unable to open results.txt for writing\n");
+        return 1;
+    }
     // #1
     test_firmware_password();
     test_root_account_status();
@@ -832,5 +840,7 @@ int main()
     check_nftables_installed();
     check_nftables_service_enabled();
     
+    fclose(results_file);
+    printf("Execution completed");
     return 0;
 }
