@@ -62,6 +62,14 @@ void test_disable_ipv6() {
             printf(GREEN "Pass: IPv6 is disabled\n" RESET);
         } else {
             printf(RED "Fail: IPv6 is not fully disabled\n" RESET);
+            printf("Action: To disable IPv6:\n");
+            printf("1. Edit /etc/default/grub and add 'ipv6.disable=1' to GRUB_CMDLINE_LINUX\n");
+            printf("2. Run 'sudo update-grub'\n");
+            printf("3. Edit /etc/sysctl.conf and add:\n");
+            printf("   net.ipv6.conf.all.disable_ipv6 = 1\n");
+            printf("   net.ipv6.conf.default.disable_ipv6 = 1\n");
+            printf("4. Run 'sudo sysctl -p'\n");
+            printf("5. Reboot the system\n");
         }
     } else {
         printf(GREEN "Pass: IPv6 is disabled in GRUB\n" RESET);
@@ -105,9 +113,19 @@ void test_disable_wireless_interfaces() {
                 printf(GREEN "Pass: Wireless is not enabled\n" RESET);
             } else {
                 printf(RED "Fail: Some wireless interfaces are enabled\n" RESET);
+                printf("Action: To disable wireless interfaces:\n");
+                printf("1. Run 'nmcli radio all off' to immediately disable wireless\n");
+                printf("2. For permanent disable, create /etc/modprobe.d/disable-wireless.conf with:\n");
+                printf("   install iwlwifi /bin/false\n");
+                printf("   install wl /bin/false\n");
+                printf("3. Run 'sudo systemctl mask wireless.service'\n");
             }
         } else {
             printf(GREEN "Pass: No wireless interfaces detected\n" RESET);
+            printf("Action: Edit /etc/sysctl.conf and add:\n");
+            printf("  net.ipv4.conf.all.send_redirects = 0\n");
+            printf("  net.ipv4.conf.default.send_redirects = 0\n");
+            printf("Then run 'sudo sysctl -p'\n");
         }
     }
 }
@@ -141,6 +159,10 @@ void test_ip_forwarding_disabled() {
         printf(GREEN "Pass: IPv4 forwarding is disabled\n" RESET);
     } else {
         printf(RED "Fail: IPv4 forwarding is not disabled\n" RESET);
+        printf("Action: Edit /etc/sysctl.conf and add:\n");
+        printf("  net.ipv4.ip_forward = 0\n");
+        printf("Then run 'sudo sysctl -p'\n");
+
     }
 
     // Check configuration files for IPv4 forwarding settings
@@ -155,6 +177,9 @@ void test_ip_forwarding_disabled() {
         printf(GREEN "Pass: IPv6 forwarding is disabled\n" RESET);
     } else {
         printf(RED "Fail: IPv6 forwarding is not disabled\n" RESET);
+        printf("Action: Edit /etc/sysctl.conf and add:\n");
+        printf("  net.ipv6.conf.all.forwarding = 0\n");
+        printf("Then run 'sudo sysctl -p'\n");
     }
 
     // Check configuration files for IPv6 forwarding settings
@@ -175,6 +200,13 @@ void check_source_routed_packets() {
         printf(GREEN "Pass: IPv4 source-routed packets are not accepted\n" RESET);
     } else {
         printf(RED "Fail: IPv4 source-routed packets acceptance is not disabled\n" RESET);
+        printf("Action: Edit /etc/sysctl.conf and add:\n");
+        printf("  net.ipv4.conf.all.accept_source_route = 0\n");
+        printf("  net.ipv4.conf.default.accept_source_route = 0\n");
+        printf("  net.ipv6.conf.all.accept_source_route = 0\n");
+        printf("  net.ipv6.conf.default.accept_source_route = 0\n");
+        printf("Then run 'sudo sysctl -p'\n");
+
     }
 
     // Check if IPv6 is enabled
@@ -201,6 +233,12 @@ void check_icmp_redirects() {
         printf(GREEN "Pass: IPv4 ICMP redirects are not accepted\n" RESET);
     } else {
         printf(RED "Fail: IPv4 ICMP redirects acceptance is not disabled\n" RESET);
+        printf("Action: Edit /etc/sysctl.conf and add:\n");
+        printf("  net.ipv4.conf.all.accept_redirects = 0\n");
+        printf("  net.ipv4.conf.default.accept_redirects = 0\n");
+        printf("  net.ipv6.conf.all.accept_redirects = 0\n");
+        printf("  net.ipv6.conf.default.accept_redirects = 0\n");
+        printf("Then run 'sudo sysctl -p'\n");
     }
 
     // Check if IPv6 is enabled
@@ -222,6 +260,10 @@ void check_suspicious_packet_logging() {
         printf(GREEN "Pass: Suspicious packets logging is enabled for IPv4\n" RESET);
     } else {
         printf(RED "Fail: Suspicious packets logging is not enabled for IPv4\n" RESET);
+        printf("Action: Edit /etc/sysctl.conf and add:\n");
+        printf("  net.ipv4.conf.all.log_martians = 1\n");
+        printf("  net.ipv4.conf.default.log_martians = 1\n");
+        printf("Then run 'sudo sysctl -p'\n");
     }
 }
 
