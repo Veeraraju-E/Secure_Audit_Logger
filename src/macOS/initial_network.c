@@ -20,14 +20,20 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 //#include <fstream>
+#include <mysql/mysql.h> // MySQL header for C API
+MYSQL *conn;
+MYSQL_RES *res;
+MYSQL_ROW row;
 
 FILE *results_file;
+// Redefine printf to also log to the console, file, and database
 #define printf(fmt, ...)                        \
     do                                          \
     {                                           \
         fprintf(stdout, fmt, ##__VA_ARGS__);    \
         if (results_file)                       \
             fprintf(results_file, fmt, ##__VA_ARGS__); \
+        log_to_database(fmt, ##__VA_ARGS__);    \
     } while (0)
 
 // Function to log failure details to suggestions.txt
@@ -42,6 +48,56 @@ void log_failure(const char *test_case, const char *purpose, const char *implica
         fprintf(file, "Suggestion: %s\n\n", suggestion);
         fclose(file);
     }
+}
+
+// Function to log messages into the MySQL database
+void log_to_database(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    // Prepare the full log message
+    char log_message[1024];
+    vsnprintf(log_message, sizeof(log_message), fmt, args);
+
+    // Determine the result based on the log message content
+    const char *result = strstr(log_message, "Pass") ? "Pass" :
+                         strstr(log_message, "Fail") ? "Fail" : "Unknown";
+
+    // Formulate the query
+    char query[1024];
+    snprintf(query, sizeof(query),
+             "INSERT INTO logs (result, log_message) VALUES ('%s', '%s')",
+             result, log_message);
+
+    // Execute the query
+    if (mysql_query(conn, query))
+    {
+        fprintf(stderr, "MySQL query error: %s\n", mysql_error(conn));
+    }
+
+    va_end(args);
+}
+
+// Initialize MySQL connection
+int initialize_mysql_connection()
+{
+    conn = mysql_init(NULL);
+    if (conn == NULL)
+    {
+        fprintf(stderr, "MySQL initialization failed\n");
+        return 1;
+    }
+
+    // Connect to MySQL server
+    if (mysql_real_connect(conn, "localhost", "root", "LaPulga@240610", "audit_logger2", 0, NULL, 0) == NULL)
+    {
+        fprintf(stderr, "MySQL connection failed: %s\n", mysql_error(conn));
+        mysql_close(conn);
+        return 1;
+    }
+
+    return 0;
 }
 
 // Checks if a service is running (MacOS version)
@@ -801,12 +857,18 @@ void check_nftables_service_enabled()
 
 int main()
 {
-    results_file = fopen("log.txt", "w");
+    results_file = fopen("/Users/pujit.jha09/Downloads/log.txt", "w");
     if (results_file == NULL)
     {
-        fprintf(stderr, "Error: Unable to open results.txt for writing\n");
+        fprintf(stderr, "Error: Unable to open log.txt for writing\n");
         return 1;
     }
+    
+    if (initialize_mysql_connection() != 0)
+    {
+        return 1;  // Exit if MySQL connection fails
+    }
+    
     // #1
     test_firmware_password();
     test_root_account_status();
@@ -842,5 +904,7 @@ int main()
     
     fclose(results_file);
     printf("Execution completed");
+    
+    mysql_close(conn);
     return 0;
 }
