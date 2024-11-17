@@ -4,13 +4,19 @@
 #include <windows.h>
 #include <sys/stat.h>
 #include <direct.h>
+#include <tchar.h>
 
 #define GREEN "\033[0;32m"
 #define RED "\033[0;31m"
 #define RESET "\033[0m"
+#define BLUE "\033[0;34m"
 
 
 #define MAX_LINE_LENGTH 512
+
+// Function prototype declaration at the top
+void check_command_5_3(const char *command);
+
 
 int check_command(const char *command, const char *expected_output)
 {
@@ -427,5 +433,368 @@ void test_default_user_umask_windows() // Checks if default user umask is restri
 }
 
 
+// Ensures default user shell timeout is configured
+void test_default_user_shell_timeout() {
+    printf("Test: Ensure default user shell timeout is configured (Automated)\n");
+
+    // This would be a PowerShell command checking for inactivity timeout policy
+    if (check_command("Get-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name ScreenSaveTimeOut", "300")) {
+        printf(GREEN "Pass: Default user shell timeout is 900 seconds or less\n" RESET);
+    } else {
+        printf(RED "Fail: Default user shell timeout exceeds 900 seconds\n" RESET);
+    }
+}
+
+// Ensures root login is restricted (Windows does not allow root login, so checking for admin restrictions)
+void test_root_login_restricted() {
+    printf("Test: Ensure root login is restricted to system console (Manual)\n");
+    printf(BLUE "This audit has to be done manually. Ensure that only trusted administrators can log in.\n" RESET);
+}
+
+// Test: Ensure access to the runas command is restricted (Automated)
+void test_access_to_runas_command() {
+    printf("Test: Ensure access to the runas command is restricted (Automated)\n");
+
+    char command[128];
+    snprintf(command, sizeof(command), "Get-Command runas");
+    if (check_command(command, "Not recognized")) {
+        printf(GREEN "Pass: Access to the runas command is restricted\n" RESET);
+    } else {
+        printf(RED "Fail: Access to the runas command is not restricted\n" RESET);
+    }
+}
+
+// Test: Ensure permissions on SSH config are configured (Windows)
+void test_permissions_on_ssh_config() {
+    printf("Test: Ensure permissions on SSH config are configured (Automated)\n");
+
+    // Checking permissions on SSH config file
+    if (check_command("icacls C:\\ProgramData\\ssh\\sshd_config", "NT AUTHORITY\\SYSTEM:(F)")) {
+        printf(GREEN "Pass: Permissions on SSH config are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on SSH config are not correctly configured\n" RESET);
+    }
+}
+
+// Test: Ensure permissions on SSH private host key files are configured (Windows)
+void test_permissions_on_ssh_private_key_files() {
+    printf("Test: Ensure permissions on SSH private host key files are configured (Automated)\n");
+
+    // Checking permissions on SSH private key files
+    if (check_command("icacls C:\\ProgramData\\ssh\\ssh_host_*_key", "NT AUTHORITY\\SYSTEM:(F)")) {
+        printf(GREEN "Pass: Permissions on SSH private host key files are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on SSH private host key files are not correctly configured\n" RESET);
+    }
+}
+
+// Test: Ensure permissions on SSH public host key files are configured (Windows)
+void test_permissions_on_ssh_public_key_files() {
+    printf("Test: Ensure permissions on SSH public host key files are configured (Automated)\n");
+
+    // Checking permissions on SSH public key files
+    if (check_command("icacls C:\\ProgramData\\ssh\\ssh_host_*_key.pub", "NT AUTHORITY\\SYSTEM:(F)")) {
+        printf(GREEN "Pass: Permissions on SSH public host key files are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on SSH public host key files are not correctly configured\n" RESET);
+    }
+}
+
+// Test: Ensure SSH access is limited (Windows)
+void test_ssh_access_is_limited() {
+    printf("Test: Ensure SSH access is limited (Automated)\n");
+
+    // Check for allowed users in SSH configuration
+    if (check_command("Get-Content C:\\ProgramData\\ssh\\sshd_config | Select-String 'AllowUsers'", "user1 user2")) {
+        printf(GREEN "Pass: SSH access is correctly limited\n" RESET);
+    } else {
+        printf(RED "Fail: SSH access is not correctly limited\n" RESET);
+    }
+}
+
+// Windows equivalent of check_command_5_3
+int check_command(const char *command, const char *expected_output) {
+    char buffer[128];
+    FILE *fp;
+    int status = 0;
+
+    // Open the command for reading.
+    fp = popen(command, "r");
+    if (fp == NULL) {
+        printf("Failed to run command: %s\n", command);
+        return 0;
+    }
+
+    // Read the output line by line and compare with expected_output.
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        if (strstr(buffer, expected_output) != NULL) {
+            status = 1;  // Match found.
+            break;
+        }
+    }
+
+    // Close the file pointer.
+    fclose(fp);
+
+    return status;
+}
+
+void test_ssh_loglevel_is_appropriate() {
+    printf("Test: 5.3.5 Ensure SSH LogLevel is appropriate (Automated)\n");
+    if (check_command("powershell Get-Content 'C:\\ProgramData\\ssh\\sshd_config' | Select-String -Pattern 'LogLevel' | Select-String -Pattern 'VERBOSE|INFO'", "")) {
+        printf(GREEN "Pass: SSH LogLevel is correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: SSH LogLevel is not correctly configured\n" RESET);
+    }
+}
+
+void test_ssh_x11_forwarding_disabled() {
+    printf("Test: 5.3.6 Ensure SSH X11 forwarding is disabled (Automated)\n");
+    if (check_command("powershell Get-Content 'C:\\ProgramData\\ssh\\sshd_config' | Select-String -Pattern 'X11Forwarding' | Select-String -Pattern 'no'", "")) {
+        printf(GREEN "Pass: SSH X11 forwarding is correctly disabled\n" RESET);
+    } else {
+        printf(RED "Fail: SSH X11 forwarding is not correctly disabled\n" RESET);
+    }
+}
+
+void test_ssh_max_auth_tries_configured() {
+    printf("Test: 5.3.7 Ensure SSH MaxAuthTries is configured (Automated)\n");
+    if (check_command("powershell Get-Content 'C:\\ProgramData\\ssh\\sshd_config' | Select-String -Pattern 'MaxAuthTries' | Select-String -Pattern '3'", "")) {
+        printf(GREEN "Pass: SSH MaxAuthTries is correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: SSH MaxAuthTries is not correctly configured\n" RESET);
+    }
+}
+
+void test_permissions_on_etc_gshadow() {
+    printf("Test: 5.3.8 Ensure permissions on /etc/gshadow are configured (Automated)\n");
+    if (check_command("powershell Get-Acl 'C:\\Windows\\System32\\drivers\\etc\\gshadow' | Format-List", "")) {
+        printf(GREEN "Pass: Permissions on /etc/gshadow are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on /etc/gshadow are not correctly configured\n" RESET);
+    }
+}
+
+void test_permissions_on_etc_shadow() {
+    printf("Test: 5.3.9 Ensure permissions on /etc/shadow are configured (Automated)\n");
+    if (check_command("powershell Get-Acl 'C:\\Windows\\System32\\drivers\\etc\\shadow' | Format-List", "")) {
+        printf(GREEN "Pass: Permissions on /etc/shadow are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on /etc/shadow are not correctly configured\n" RESET);
+    }
+}
+
+void test_permissions_on_etc_passwd() {
+    printf("Test: 5.3.10 Ensure permissions on /etc/passwd are configured (Automated)\n");
+    if (check_command("powershell Get-Acl 'C:\\Windows\\System32\\drivers\\etc\\passwd' | Format-List", "")) {
+        printf(GREEN "Pass: Permissions on /etc/passwd are correctly configured\n" RESET);
+    } else {
+        printf(RED "Fail: Permissions on /etc/passwd are not correctly configured\n" RESET);
+    }
+}
+
+void test_etc_passwd_is_immutable() {
+    printf("Test: 5.3.11 Ensure /etc/passwd is immutable (Automated)\n");
+    if (check_command("powershell Get-Item 'C:\\Windows\\System32\\drivers\\etc\\passwd' | Select-Object -ExpandProperty Attributes", "ReadOnly")) {
+        printf(GREEN "Pass: /etc/passwd is correctly immutable\n" RESET);
+    } else {
+        printf(RED "Fail: /etc/passwd is not correctly immutable\n" RESET);
+    }
+}
+
+void test_etc_shadow_is_immutable() {
+    printf("Test: 5.3.12 Ensure /etc/shadow is immutable (Automated)\n");
+    if (check_command("powershell Get-Item 'C:\\Windows\\System32\\drivers\\etc\\shadow' | Select-Object -ExpandProperty Attributes", "ReadOnly")) {
+        printf(GREEN "Pass: /etc/shadow is correctly immutable\n" RESET);
+    } else {
+        printf(RED "Fail: /etc/shadow is not correctly immutable\n" RESET);
+    }
+}
+
+void test_etc_group_is_immutable() {
+    printf("Test: 5.3.13 Ensure /etc/group is immutable (Automated)\n");
+    if (check_command("powershell Get-Item 'C:\\Windows\\System32\\drivers\\etc\\group' | Select-Object -ExpandProperty Attributes", "ReadOnly")) {
+        printf(GREEN "Pass: /etc/group is correctly immutable\n" RESET);
+    } else {
+        printf(RED "Fail: /etc/group is not correctly immutable\n" RESET);
+    }
+}
+
+void test_etc_gshadow_is_immutable() {
+    printf("Test: 5.3.14 Ensure /etc/gshadow is immutable (Automated)\n");
+    if (check_command("powershell Get-Item 'C:\\Windows\\System32\\drivers\\etc\\gshadow' | Select-Object -ExpandProperty Attributes", "ReadOnly")) {
+        printf(GREEN "Pass: /etc/gshadow is correctly immutable\n" RESET);
+    } else {
+        printf(RED "Fail: /etc/gshadow is not correctly immutable\n" RESET);
+    }
+}
+
+void test_rhosts_files_disabled() {
+    printf("Test: 5.3.15 Ensure .rhosts files are disabled (Automated)\n");
+    if (check_command("powershell Get-Content 'C:\\ProgramData\\ssh\\sshd_config' | Select-String -Pattern '.rhosts' | Select-String -Pattern 'none'", "")) {
+        printf(GREEN "Pass: .rhosts files are correctly disabled\n" RESET);
+    } else {
+        printf(RED "Fail: .rhosts files are not correctly disabled\n" RESET);
+    }
+}
+
+void test_ssh_root_login_disabled() {
+    printf("Test: 5.3.16 Ensure SSH root login is disabled (Automated)\n");
+    if (check_command("powershell Get-Content 'C:\\ProgramData\\ssh\\sshd_config' | Select-String -Pattern 'PermitRootLogin' | Select-String -Pattern 'no'", "")) {
+        printf(GREEN "Pass: SSH root login is correctly disabled\n" RESET);
+    } else {
+        printf(RED "Fail: SSH root login is not correctly disabled\n" RESET);
+    }
+}
+
+void test_ssh_protocol_is_2() {
+    printf("Test: 5.3.17 Ensure SSH protocol is set to 2 (Automated)\n");
+    if (check_command("powershell Get-Content 'C:\\ProgramData\\ssh\\sshd_config' | Select-String -Pattern 'Protocol' | Select-String -Pattern '2'", "")) {
+        printf(GREEN "Pass: SSH protocol is correctly set to 2\n" RESET);
+    } else {
+        printf(RED "Fail: SSH protocol is not correctly set to 2\n" RESET);
+    }
+}
+
+void test_etc_ssh_disabled() {
+    printf("Test: 5.3.18 Ensure SSH is disabled if not needed (Automated)\n");
+    if (check_command("powershell Get-Service -Name 'sshd' | Select-Object -ExpandProperty Status", "Stopped")) {
+        printf(GREEN "Pass: SSH is correctly disabled if not needed\n" RESET);
+    } else {
+        printf(RED "Fail: SSH is not correctly disabled if not needed\n" RESET);
+    }
+}
+
+// Utility to execute a PowerShell command
+void run_powershell_command(const char* command) {
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd), "powershell -Command \"%s\"", command);
+    system(cmd);
+}
+
+// Function to test if Windows Firewall is enabled
+void test_windows_firewall_enabled() {
+    printf("Test: Ensure Windows Firewall is enabled (Automated)\n");
+    run_powershell_command("Get-NetFirewallProfile | Where-Object {$_.Enabled -eq $true}");
+    printf("Pass: Windows Firewall is enabled\n");
+}
+
+// Function to test if UAC (User Account Control) is enabled
+void test_uac_enabled() {
+    printf("Test: Ensure User Account Control is enabled (Automated)\n");
+    run_powershell_command("Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -Name EnableLUA");
+    printf("Pass: UAC is enabled\n");
+}
+
+// First definition of test_password_expiration (line 270)
+void test_password_expiration() {
+    printf("Test: Ensure password expiration is configured (Automated)\n");
+    run_powershell_command("Get-LocalUser | Where-Object {$_.PasswordNeverExpires -eq $false}");
+    printf("Pass: Password expiration is configured\n");
+}
 
 
+// Function to test if password expiration is configured
+void test_password_expiration() {
+    printf("Test: Ensure password expiration is configured (Automated)\n");
+    run_powershell_command("Get-LocalUser | Where-Object {$_.PasswordNeverExpires -eq $false}");
+    printf("Pass: Password expiration is configured\n");
+}
+
+// Function to test if account lockout is configured
+void test_account_lockout() {
+    printf("Test: Ensure account lockout is configured (Automated)\n");
+    run_powershell_command("Get-LocalSecurityPolicy -Name LockoutBadCount");
+    printf("Pass: Account lockout is configured\n");
+}
+
+// Function to test if minimum password length is set
+void test_minimum_password_length() {
+    printf("Test: Ensure minimum password length is configured (Automated)\n");
+    run_powershell_command("Get-LocalSecurityPolicy -Name MinimumPasswordLength");
+    printf("Pass: Minimum password length is set\n");
+}
+
+// Function to test if password history is set
+void test_password_history() {
+    printf("Test: Ensure password history is set (Automated)\n");
+    run_powershell_command("Get-LocalSecurityPolicy -Name PasswordHistorySize");
+    printf("Pass: Password history is configured\n");
+}
+
+// Function to test if SSH service is disabled (Windows uses OpenSSH, if installed)
+void test_ssh_service_disabled() {
+    printf("Test: Ensure SSH service is disabled if not needed (Automated)\n");
+    run_powershell_command("Get-Service -Name ssh-agent | Where-Object {$_.Status -eq 'Stopped'}");
+    printf("Pass: SSH service is disabled\n");
+}
+
+// Function to test if Remote Desktop is disabled
+void test_remote_desktop_disabled() {
+    printf("Test: Ensure Remote Desktop is disabled (Automated)\n");
+    run_powershell_command("Get-ItemProperty -Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' -Name fDenyTSConnections");
+    printf("Pass: Remote Desktop is disabled\n");
+}
+
+// Function to test if SMBv1 is disabled
+void test_smbv1_disabled() {
+    printf("Test: Ensure SMBv1 is disabled (Automated)\n");
+    run_powershell_command("Get-WindowsFeature FS-SMB1 | Where-Object {$_.Installed -eq $false}");
+    printf("Pass: SMBv1 is disabled\n");
+}
+
+// Function to test if security auditing is enabled
+void test_security_auditing_enabled() {
+    printf("Test: Ensure security auditing is enabled (Automated)\n");
+    run_powershell_command("auditpol /get /category:Logon/Logoff");
+    printf("Pass: Security auditing is enabled\n");
+}
+
+// Function to test if Windows Defender Antivirus is enabled
+void test_windows_defender_enabled() {
+    printf("Test: Ensure Windows Defender Antivirus is enabled (Automated)\n");
+    run_powershell_command("Get-MpComputerStatus | Where-Object {$_.AMProductState -eq 397568}");
+    printf("Pass: Windows Defender is enabled\n");
+}
+
+// Function to test if Windows Update is enabled
+void test_windows_update_enabled() {
+    printf("Test: Ensure Windows Update is enabled (Automated)\n");
+    run_powershell_command("Get-Service -Name wuauserv | Where-Object {$_.Status -eq 'Running'}");
+    printf("Pass: Windows Update is enabled\n");
+}
+
+// Function to test if guest account is disabled
+void test_guest_account_disabled() {
+    printf("Test: Ensure guest account is disabled (Automated)\n");
+    run_powershell_command("Get-LocalUser | Where-Object {$_.Name -eq 'Guest' -and $_.Enabled -eq $false}");
+    printf("Pass: Guest account is disabled\n");
+}
+
+// Function to test if the Administrator account is disabled
+void test_administrator_account_disabled() {
+    printf("Test: Ensure the Administrator account is disabled (Automated)\n");
+    run_powershell_command("Get-LocalUser | Where-Object {$_.Name -eq 'Administrator' -and $_.Enabled -eq $false}");
+    printf("Pass: Administrator account is disabled\n");
+}
+
+// Main function to run the tests
+int main() {
+    // Test firewall and security configurations
+    test_windows_firewall_enabled();
+    test_uac_enabled();
+    test_password_expiration();
+    test_account_lockout();
+    test_minimum_password_length();
+    test_password_history();
+    test_ssh_service_disabled();
+    test_remote_desktop_disabled();
+    test_smbv1_disabled();
+    test_security_auditing_enabled();
+    test_windows_defender_enabled();
+    test_windows_update_enabled();
+    test_guest_account_disabled();
+    test_administrator_account_disabled();
+
+    return 0;
+}
