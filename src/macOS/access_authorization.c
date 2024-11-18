@@ -98,6 +98,31 @@ int initialize_mysql_connection()
     return 0;
 }
 
+// Function to create and download SQL dump
+void create_and_download_sql_dump(const char *dbname, const char *output_path)
+{
+    char command[1024];
+
+    // Construct the mysqldump command
+    snprintf(command, sizeof(command), "mysqldump -u root -pLaPulga@240610 --databases %s > %s", dbname, output_path);
+
+    printf("Creating SQL dump...\n");
+    if (system(command) == 0)
+    {
+        printf(GREEN "SQL dump created successfully: %s\n" RESET, output_path);
+    }
+    else
+    {
+        printf(RED "Failed to create SQL dump\n" RESET);
+        log_failure(
+            "SQL Dump Creation",
+            "To create a backup of the MySQL database",
+            "Without a backup, data recovery becomes difficult in case of failures.",
+            "Ensure MySQL is running and the command has sufficient permissions."
+        );
+    }
+}
+
 // Checks if a service is running (MacOS version)
 int check_service(const char *service)
 {
@@ -1114,6 +1139,15 @@ int main()
     test_users_last_password_change();
     test_system_accounts_secured();
     
-    printf("Execution Completed");
+    const char *dbname = "audit_logger2";
+    const char *output_path = "/Users/pujit.jha09/Downloads/SQL_Log#2.sql";
+    create_and_download_sql_dump(dbname, output_path);
+    
+    fclose(results_file);
+    printf("Execution completed");
+    
+    mysql_close(conn);
+    
+    //printf("Execution Completed");
     return 0;
 }
