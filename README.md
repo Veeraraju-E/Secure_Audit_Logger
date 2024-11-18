@@ -192,16 +192,16 @@ Test: 4.1.1.2 Ensure auditd service is enabled (Automated)
 [FAIL] auditd service is not enabled
 Action: Run 'sudo systemctl enable auditd'
 
+Test: 4.1.2.1 Ensure audit log storage size is configured (Automated)
+[PASS] Audit log storage size is properly configured
+```
+
 ### Remediation
+
 - For failed tests, the tool provides specific commands and configuration changes needed
 - All remediation steps are logged in the audit report
 - Review the changes before implementing them
 - Some changes may require system restart
-
-
-Test: 4.1.2.1 Ensure audit log storage size is configured (Automated)
-[PASS] Audit log storage size is properly configured
-```
 
 ## Operating System Support
 
@@ -225,7 +225,7 @@ Secure_Audit_Logger/
 │   │   ├── network_config.c
 │   │   ├── logging_auditing.c
 │   │   └── access_control.c
-│   ├── windows/                 # Windows-specific tests
+│   └── windows/                 # Windows-specific tests
 │       ├── network_config.c
 │       ├── logging_auditing.c
 │       └── access_control.c

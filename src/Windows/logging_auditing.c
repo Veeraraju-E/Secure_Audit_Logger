@@ -2,18 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef GREEN
-    #define GREEN "\033[0;32m"
-#endif
-
-#ifndef RED
-    #define RED "\033[0;31m"
-#endif
-
-#ifndef RESET
-    #define RESET "\033[0m"
-#endif
-
+#define GREEN "\033[0;32m"
+#define RED "\033[0;31m"
+#define RESET "\033[0m"
 
 
 // Declare function prototypes at the top
