@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <common/colors.h>
+#include "../common/colors.h"
 
 #define MIN_UID 1000
 #define MAX_LINE_LENGTH 512
@@ -456,7 +456,7 @@ void test_users_last_password_change() //It retrieves the last password change d
 {
     printf("Test: 5.5.1.5 Ensure all users last password change date is in the past (Automated)\n");
     char output[128];
-    char command[128];
+    char command[512];
     snprintf(command, sizeof(command), "awk -F: '{print $1}' /etc/shadow | while read -r usr; do [[ $(date --date=\"$(chage --list \"$usr\" | grep '^Last password change' | cut -d: -f2)\" +%%s) > $(date +%%s) ]] && echo \"$usr last password change was: $(chage --list \"$usr\" | grep '^Last password change' | cut -d: -f2)\"; done");
     FILE *fp = popen(command, "r");
     if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) 
