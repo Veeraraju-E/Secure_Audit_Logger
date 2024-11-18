@@ -1,0 +1,51 @@
+/* styles.css */
+
+/* General body styles */
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+/* Header styles */
+h1,
+h2,
+h3 {
+  color: #2c3e50;
+}
+
+/* Link styles */
+a {
+  color: #2980b9;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Section styles */
+section {
+  margin: 20px 0;
+  padding: 20px;
+  background: #fff;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Code block styles */
+pre {
+  background: #f4f4f4;
+  padding: 10px;
+  border-left: 3px solid #2980b9;
+  overflow-x: auto;
+}
+
+/* Footer styles */
+footer {
+  text-align: center;
+  padding: 20px;
+  background: #2c3e50;
+  color: white;
+}
