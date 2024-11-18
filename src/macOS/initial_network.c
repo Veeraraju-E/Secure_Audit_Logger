@@ -90,7 +90,7 @@ int initialize_mysql_connection()
     }
 
     // Connect to MySQL server
-    if (mysql_real_connect(conn, "localhost", "root", "<MySQL_Password", "audit_logger2", 0, NULL, 0) == NULL)
+    if (mysql_real_connect(conn, "localhost", "root", "<MySQL_Password>", "audit_logger2", 0, NULL, 0) == NULL)
     {
         fprintf(stderr, "MySQL connection failed: %s\n", mysql_error(conn));
         mysql_close(conn);
@@ -98,6 +98,31 @@ int initialize_mysql_connection()
     }
 
     return 0;
+}
+
+// Function to create and download SQL dump
+void create_and_download_sql_dump(const char *dbname, const char *output_path)
+{
+    char command[1024];
+
+    // Construct the mysqldump command
+    snprintf(command, sizeof(command), "mysqldump -u root -p<MySQL_Password> --databases %s > %s", dbname, output_path);
+
+    printf("Creating SQL dump...\n");
+    if (system(command) == 0)
+    {
+        printf(GREEN "SQL dump created successfully: %s\n" RESET, output_path);
+    }
+    else
+    {
+        printf(RED "Failed to create SQL dump\n" RESET);
+        log_failure(
+            "SQL Dump Creation",
+            "To create a backup of the MySQL database",
+            "Without a backup, data recovery becomes difficult in case of failures.",
+            "Ensure MySQL is running and the command has sufficient permissions."
+        );
+    }
 }
 
 // Checks if a service is running (MacOS version)
@@ -137,6 +162,7 @@ int check_command(const char *command, const char *expected_output)
     pclose(fp);
     return strstr(result, expected_output) != NULL;
 }
+
 // Check if audit rules for a certain keyword are present in the audit rules files
 int check_audit_rules(const char *keyword)
 {
@@ -901,6 +927,10 @@ int main()
     check_ufw_default_deny_policy();
     check_nftables_installed();
     check_nftables_service_enabled();
+    
+    const char *dbname = "audit_logger2";
+    const char *output_path = "/Users/pujit.jha09/Downloads/SQL_Log.sql";
+    create_and_download_sql_dump(dbname, output_path);
     
     fclose(results_file);
     printf("Execution completed");
