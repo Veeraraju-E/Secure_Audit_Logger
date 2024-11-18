@@ -1,10 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#define GREEN "\033[0;32m"
-#define RED "\033[0;31m"
-#define RESET "\033[0m"
+#include <common/colors.h>
 
 
 // Declare function prototypes at the top

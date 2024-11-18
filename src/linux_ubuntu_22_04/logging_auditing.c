@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <src/common/colors.h>
+#include <common/colors.h>
 
 #define MIN_UID 1000
 #define MAX_LINE_LENGTH 512

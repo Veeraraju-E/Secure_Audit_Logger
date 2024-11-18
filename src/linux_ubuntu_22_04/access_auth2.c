@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <src/common/colors.h>
+#include <common/colors.h>
 
 #define MIN_UID 1000
 #define MAX_LINE_LENGTH 512

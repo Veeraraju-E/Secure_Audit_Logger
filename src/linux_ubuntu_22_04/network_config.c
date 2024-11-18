@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <src/common/colors.h>
+#include <common/colors.h>
 
 int check_command(const char *command, const char *expected_output) {
     char buffer[256];

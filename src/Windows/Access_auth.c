@@ -5,11 +5,7 @@
 #include <sys/stat.h>
 #include <direct.h>
 #include <tchar.h>
-
-#define GREEN "\033[0;32m"
-#define RED "\033[0;31m"
-#define RESET "\033[0m"
-#define BLUE "\033[0;34m"
+#include <common/colors.h>
 
 
 #define MAX_LINE_LENGTH 512
