@@ -82,8 +82,10 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 
 ## Project Members
 
-- [Veeraraju Elluru](https://github.com/Veeraraju-E) - Project Maintainer
-- [Contributor Name](https://github.com/contributorusername) - Contributor
+- [Veeraraju Elluru](https://github.com/Veeraraju-E) - Project Maintainer + Contributor (Ubuntu)
+- [Pujit Jha](https://github.com/pujit-jha) - Contributor (macOS)
+- [Sai Vighnesh](https://github.com/viggu3sd) - Contributor (Windows)
+- [Malothu Suresh](https://github.com/malothusuresh) - Contributor (Windows)
 
 ## Acknowledgments
 
