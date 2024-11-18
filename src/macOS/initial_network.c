@@ -90,7 +90,7 @@ int initialize_mysql_connection()
     }
 
     // Connect to MySQL server
-    if (mysql_real_connect(conn, "localhost", "root", "LaPulga@240610", "audit_logger2", 0, NULL, 0) == NULL)
+    if (mysql_real_connect(conn, "localhost", "root", "<MySQL_Password", "audit_logger2", 0, NULL, 0) == NULL)
     {
         fprintf(stderr, "MySQL connection failed: %s\n", mysql_error(conn));
         mysql_close(conn);
