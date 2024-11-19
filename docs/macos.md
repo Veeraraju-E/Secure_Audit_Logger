@@ -17,6 +17,10 @@ cd Secure_Audit_Logger
 
 # Install required packages
 brew install gcc make
+brew install mysql-client
+brew install openssl
+brew install curl
+brew install mailutils
 ```
 
 3. Build the project:
@@ -28,5 +32,7 @@ make macos
 4. Run the audit:
 
 ```bash
-sudo ./scripts/run_audit.sh
+gcc -o MacExec <name_of_file>.c -I/opt/homebrew/Cellar/mysql/9.0.1_6/include -L/opt/homebrew/Cellar/mysql/9.0.1_6/lib -lmysqlclient -lpthread -I/opt/homebrew/opt/curl/include -L/opt/homebrew/opt/curl/lib -lcurl -I/opt/homebrew/opt/openssl/include -L/opt/homebrew/opt/openssl/lib -lssl -lcrypto
+
+#To be executed for each file
 ```
