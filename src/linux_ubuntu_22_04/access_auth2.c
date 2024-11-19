@@ -78,12 +78,13 @@ void test_cron_enabled_and_running() //The cron daemon schedules and executes ta
 void test_crontab_permissions() //The crontab file contains system-wide scheduled tasks. Restricting its permissions prevents unauthorized users from modifying scheduled jobs.
 {
     printf("Test: 5.1.2 Ensure permissions on /etc/crontab are configured (Automated)\n");
-    if (check_permissions("/etc/crontab", 0700, 0, 0)) {    // access as root, root a=should have rwx
+    if (check_permissions("/etc/crontab", 0700, 0, 0)) {    // access as root, root should have rwx
         printf("Pass: /etc/crontab permissions are correct\n");
     } 
     else 
     {
         printf("Fail: /etc/crontab permissions are incorrect\n");
+	printf("Action: Run 'chmod 0700 /etc/crontab' to allow only root to access.")
     }
 }
 
