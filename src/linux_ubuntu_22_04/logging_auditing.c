@@ -40,10 +40,10 @@ int check_command(const char *command, const char *expected_output) {
 void test_auditd_installed() {
     printf("Test: 4.1.1.1 Ensure auditd is installed (Automated)\n");
     if (check_command("dpkg -s auditd audispd-plugins", "Status: install ok installed")) {
-        printf(GREEN "Pass: auditd is installed\n" RESET);
+        printf("Pass: auditd is installed\n");
         AUDITD_INSTALLED = 1;
     } else {
-        printf(RED "Fail: auditd is not installed\n" RESET);
+        printf("Fail: auditd is not installed\n");
         printf("Action: Run 'sudo apt install auditd audispd-plugins'\n");
         AUDITD_INSTALLED = 0;
     }
@@ -52,10 +52,10 @@ void test_auditd_installed() {
 void test_auditd_service_enabled() {
     printf("Test: 4.1.1.2 Ensure auditd service is enabled (Automated)\n");
     if (check_command("systemctl is-enabled auditd", "enabled")) {
-        printf(GREEN "Pass: auditd service is enabled\n" RESET);
+        printf("Pass: auditd service is enabled\n");
     } else {
-        if (AUDITD_INSTALLED) printf(RED "Fail: auditd service is not enabled\n" RESET);
-        else printf(BLUE "auditd is not installed\n" RESET);
+        if (AUDITD_INSTALLED) printf("Fail: auditd service is not enabled\n");
+        else printf("Fail: auditd is not installed\n");
         printf("Action: Run 'sudo systemctl enable auditd'\n");
 
     }
@@ -64,10 +64,10 @@ void test_auditd_service_enabled() {
 void test_auditd_enabled_at_boot() {
     printf("Test: 4.1.1.3 Ensure auditing for processes that start prior to auditd is enabled (Automated)\n");
     if (!check_command("grep \"^\\s*linux\" /boot/grub/grub.cfg | grep -v \"audit=1\"", "")) {
-        printf(GREEN "Pass: auditd is enabled at boot\n" RESET);
+        printf("Pass: auditd is enabled at boot\n");
     } else {
-        if (AUDITD_INSTALLED) printf(RED "Fail: auditd is not enabled at boot\n" RESET);
-        else printf(BLUE "auditd is not installed\n" RESET);
+        if (AUDITD_INSTALLED) printf("Fail: auditd is not enabled at boot\n");
+        else printf("Fail: auditd is not installed\n");
         printf("Action: Run 'sudo apt install auditd audispd-plugins'\n");
 
     }
@@ -76,9 +76,9 @@ void test_auditd_enabled_at_boot() {
 void test_audit_log_not_deleted() {
     printf("Test: 4.1.2.2 Ensure audit logs are not automatically deleted (Automated)\n");
     if (check_command("grep max_log_file_action /etc/audit/auditd.conf", "max_log_file_action = keep_logs")) {
-        printf(GREEN "Pass: audit logs are configured to not be deleted\n" RESET);
+        printf("Pass: audit logs are configured to not be deleted\n");
     } else {
-        printf(RED "Fail: audit logs may be automatically deleted\n" RESET);
+        printf("Fail: audit logs may be automatically deleted\n");
         printf("Action: Edit /etc/audit/auditd.conf and set 'max_log_file_action = keep_logs'\n");
 
     }
@@ -92,9 +92,9 @@ void test_audit_logs_on_full() {
     pass &= check_command("grep admin_space_left_action /etc/audit/auditd.conf", "admin_space_left_action = halt");
 
     if (pass) {
-        printf(GREEN "Pass: System is configured to disable on full audit logs\n" RESET);
+        printf("Pass: System is configured to disable on full audit logs\n");
     } else {
-        printf(RED "Fail: System is not configured correctly for full audit logs\n" RESET);
+        printf("Fail: System is not configured correctly for full audit logs\n");
         printf("Action: Edit /etc/audit/auditd.conf and ensure:\n");
         printf("  - space_left_action = email\n");
         printf("  - action_mail_acct = root\n");
@@ -118,9 +118,9 @@ void test_audit_logs_on_full() {
 //         "-w /etc/localtime -p wa -k time-change");
 
 //     if (pass) {
-//         printf(GREEN "Pass: Date and time modification events are collected\n" RESET);
+//         printf("Pass: Date and time modification events are collected\n");
 //     } else {
-//         printf(RED "Fail: Date and time modification events are not fully collected\n" RESET);
+//         printf("Pass: Date and time modification events are not fully collected\n");
 //     }
 // }
 
@@ -131,9 +131,9 @@ void test_user_group_info_events() {
         check_command("grep identity /etc/audit/rules.d/*.rules", "-w /etc/gshadow -p wa -k identity") ||
         check_command("grep identity /etc/audit/rules.d/*.rules", "-w /etc/shadow -p wa -k identity") ||
         check_command("grep identity /etc/audit/rules.d/*.rules", "-w /etc/security/opasswd -p wa -k identity")) {
-        printf(GREEN "Pass: Events that modify user/group information are collected\n" RESET);
+        printf("Pass: Events that modify user/group information are collected\n");
     } else {
-        printf(RED "Fail: Events that modify user/group information are not collected\n" RESET);
+        printf("Fail: Events that modify user/group information are not collected\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -w /etc/group -p wa -k identity\n");
         printf("  -w /etc/passwd -p wa -k identity\n");
@@ -153,9 +153,9 @@ void test_network_environment_events() {
         check_command("grep system-locale /etc/audit/rules.d/*.rules", "-w /etc/issue.net -p wa -k system-locale") ||
         check_command("grep system-locale /etc/audit/rules.d/*.rules", "-w /etc/hosts -p wa -k system-locale") ||
         check_command("grep system-locale /etc/audit/rules.d/*.rules", "-w /etc/network -p wa -k system-locale")) {
-        printf(GREEN "Pass: Events that modify the network environment are collected\n" RESET);
+        printf("Pass: Events that modify the network environment are collected\n");
     } else {
-        printf(RED "Fail: Events that modify the network environment are not collected\n" RESET);
+        printf("Fail: Events that modify the network environment are not collected\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -a always,exit -F arch=b64 -S sethostname -S setdomainname -k system-locale\n");
         printf("  -a always,exit -F arch=b32 -S sethostname -S setdomainname -k system-locale\n");
@@ -171,9 +171,9 @@ void test_network_environment_events() {
 //     printf("Test: 4.1.6 Ensure events that modify the system's Mandatory Access Controls are collected (Automated)\n");
 //     if (check_command("grep MAC-policy /etc/audit/rules.d/*.rules", "-w /etc/apparmor/ -p wa -k MAC-policy") ||
 //         check_command("grep MAC-policy /etc/audit/rules.d/*.rules", "-w /etc/apparmor.d/ -p wa -k MAC-policy")) {
-//         printf(GREEN "Pass: Events that modify MAC policies are collected\n" RESET);
+//         printf("Pass: Events that modify MAC policies are collected\n");
 //     } else {
-//         printf(RED "Fail: Events that modify MAC policies are not collected\n" RESET);
+//         printf("Pass: Events that modify MAC policies are not collected\n");
 //     }
 // }
 
@@ -182,9 +182,9 @@ void test_login_logout_events() {
     if (check_command("grep logins /etc/audit/rules.d/*.rules", "-w /var/log/faillog -p wa -k logins") ||
         check_command("grep logins /etc/audit/rules.d/*.rules", "-w /var/log/lastlog -p wa -k logins") ||
         check_command("grep logins /etc/audit/rules.d/*.rules", "-w /var/log/tallylog -p wa -k logins")) {
-        printf(GREEN "Pass: Login and logout events are collected\n" RESET);
+        printf("Pass: Login and logout events are collected\n");
     } else {
-        printf(RED "Fail: Login and logout events are not collected\n" RESET);
+        printf("Fail: Login and logout events are not collected\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -w /var/log/faillog -p wa -k logins\n");
         printf("  -w /var/log/lastlog -p wa -k logins\n");
@@ -199,9 +199,9 @@ void test_session_initiation_events() {
     if (check_command("grep -E '(session|logins)' /etc/audit/rules.d/*.rules", "-w /var/run/utmp -p wa -k session") ||
         check_command("grep -E '(session|logins)' /etc/audit/rules.d/*.rules", "-w /var/log/wtmp -p wa -k logins") ||
         check_command("grep -E '(session|logins)' /etc/audit/rules.d/*.rules", "-w /var/log/btmp -p wa -k logins")) {
-        printf(GREEN "Pass: Session initiation information is collected\n" RESET);
+        printf("Pass: Session initiation information is collected\n");
     } else {
-        printf(RED "Fail: Session initiation information is not collected\n" RESET);
+        printf("Fail: Session initiation information is not collected\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -w /var/run/utmp -p wa -k session\n");
         printf("  -w /var/log/wtmp -p wa -k logins\n");
@@ -229,13 +229,11 @@ void test_permission_modification_events() {
     pass &= check_command("auditctl -l | grep perm_mod", cmd_32);
 
     if (pass) {
-        printf(GREEN "Pass: Permission modification events are collected\n" RESET);
+        printf("Pass: Permission modification events are collected\n");
     } else {
-        printf(RED "Fail: Permission modification events are not fully collected\n" RESET);
-        printf(RED "Fail: Permission modification events are not fully collected\n" RESET);
+        printf("Fail: Permission modification events are not fully collected\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -a always,exit -F arch=b64 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=4294967295 -k perm_mod\n");
-        printf("  -a always,exit -F arch=b32 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=4294967295 -k perm_mod\n");
         printf("Then run 'sudo augenrules --load'\n");
 
     }
@@ -256,12 +254,11 @@ void test_unsuccessful_file_access_attempts() {
     pass &= check_command("auditctl -l | grep access", cmd_acces_b32);
 
     if (pass) {
-        printf(GREEN "Pass: Unauthorized file access attempts are collected\n" RESET);
+        printf("Pass: Unauthorized file access attempts are collected\n");
     } else {
-        printf(RED "[IMP] Fail: Unauthorized file access attempts are not fully collected\n" RESET);
+        printf("[IMP] Fail: Unauthorized file access attempts are not fully collected\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -a always,exit -F arch=b64 -S creat,open,openat,truncate,ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -k access\n");
-        printf("  -a always,exit -F arch=b32 -S creat,open,openat,truncate,ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -k access\n");
         printf("Then run 'sudo augenrules --load'\n");
 
     }
@@ -270,12 +267,11 @@ void test_unsuccessful_file_access_attempts() {
 void test_mounts_collection() {
     printf("4.1.12 - Ensure successful file system mounts are collected\n");
     if (check_audit_rules("mounts") == 0 && check_auditctl("mounts") == 0) {
-        printf(GREEN "Pass: Succesful file system mounts are collected\n" RESET);
+        printf("Pass: Succesful file system mounts are collected\n");
     } else {
-        printf(RED "Fail: Unable to collect succesful system mounts\n" RESET);
+        printf("Fail: Unable to collect succesful system mounts\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -a always,exit -F arch=b64 -S mount -F auid>=1000 -F auid!=4294967295 -k mounts\n");
-        printf("  -a always,exit -F arch=b32 -S mount -F auid>=1000 -F auid!=4294967295 -k mounts\n");
         printf("Then run 'sudo augenrules --load'\n");
 
     }
@@ -284,18 +280,18 @@ void test_mounts_collection() {
 void test_file_deletion_collection() {
     printf("4.1.13 - Ensure file deletion events by users are collected\n");
     if (check_audit_rules("delete") == 0 && check_auditctl("delete") == 0) {
-        printf(GREEN "Pass: File deletion user events are collected\n" RESET);
+        printf("Pass: File deletion user events are collected\n");
     } else {
-        printf(RED "Fail: Unable to collect file deletion events by users.\n" RESET);
+        printf("Fail: Unable to collect file deletion events by users.\n");
     }
 }
 
 void test_sudoers_scope_collection() {
     printf("4.1.14 - Ensure changes to system administration scope (sudoers) are collected\n");
     if (check_audit_rules("scope") == 0 && check_auditctl("scope") == 0) {
-        printf(GREEN "Pass: Changes to sudoers collected\n" RESET);
+        printf("Pass: Changes to sudoers collected\n");
     } else {
-        printf(RED "[IMP] Fail: Unable to collect changes to the sudoers\n" RESET);
+        printf("[IMP] Fail: Unable to collect changes to the sudoers\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -w /etc/sudoers -p wa -k scope\n");
         printf("  -w /etc/sudoers.d/ -p wa -k scope\n");
@@ -307,12 +303,11 @@ void test_sudoers_scope_collection() {
 void test_sudo_command_execution_collection() {
     printf("4.1.15 - Ensure system administrator command executions (sudo) are collected\n");
     if (check_audit_rules("actions") == 0 && check_auditctl("actions") == 0) {
-        printf(GREEN "Pass: System admin command executions collected\n" RESET);
+        printf("Pass: System admin command executions collected\n");
     } else {
-        printf(RED "[IMP] Fail: Unable to collect system admin command executions\n" RESET);
+        printf("[IMP] Fail: Unable to collect system admin command executions\n");
         printf("Action: Add the following lines to /etc/audit/rules.d/audit.rules:\n");
         printf("  -a always,exit -F arch=b64 -C euid!=uid -F euid=0 -F auid>=1000 -F auid!=4294967295 -S execve -k actions\n");
-        printf("  -a always,exit -F arch=b32 -C euid!=uid -F euid=0 -F auid>=1000 -F auid!=4294967295 -S execve -k actions\n");
         printf("Then run 'sudo augenrules --load'\n");
 
     }
@@ -321,9 +316,9 @@ void test_sudo_command_execution_collection() {
 // void test_kernel_module_loading_collection() {
 //     printf("4.1.16 - Ensure kernel module loading and unloading is collected\n");
 //     if (check_audit_rules("modules") == 0 && check_auditctl("modules") == 0) {
-//         printf(GREEN "Pass: Kernel module load and unload successfuly collected\n" RESET);
+//         printf("Pass: Kernel module load and unload successfuly collected\n");
 //     } else {
-//         printf(RED "Fail: Unable to collect kernel module load and unload\n" RESET);
+//         printf("Pass: Unable to collect kernel module load and unload\n");
 //     }
 // }
 
@@ -359,12 +354,12 @@ void test_audit_immutable_configuration() {
 
         // expected output "-e 2" string
         if (strcmp(output, "-e 2") == 0) {
-            printf(GREEN "Pass: Audit configuration is immutable\n" RESET);
+            printf("Pass: Audit configuration is immutable\n");
         } else {
-            printf(RED "[IMP] Fail: Audit configuration is mutable.\n" RESET);
+            printf(RED "[IMP] Fail: Audit configuration is mutable.\n");
         }
     } else {
-        printf(RED "[IMP] Fail: Audit configuration is mutable\n" RESET);
+        printf(RED "[IMP] Fail: Audit configuration is mutable\n");
     }
 
     fclose(fp);
@@ -375,9 +370,9 @@ void test_audit_immutable_configuration() {
 void test_rsyslog_installed() {
     printf("Test: 4.2.1.1 Ensure rsyslog is installed (Automated)\n");
     if (check_command("dpkg -s rsyslog", "Status: install ok installed")) {
-        printf(GREEN "Pass: rsyslog is installed\n" RESET);
+        printf("Pass: rsyslog is installed\n");
     } else {
-        printf(RED "Fail: rsyslog is not installed\n" RESET);
+        printf("Fail: rsyslog is not installed\n");
         printf("Action: Run 'sudo apt install rsyslog'\n");
     }
 }
@@ -385,9 +380,9 @@ void test_rsyslog_installed() {
 void test_rsyslog_service_enabled() {
     printf("Test: 4.2.1.2 Ensure rsyslog Service is enabled (Automated)\n");
     if (check_command("systemctl is-enabled rsyslog", "enabled")) {
-        printf(GREEN "Pass: rsyslog service is enabled\n" RESET);
+        printf("Pass: rsyslog service is enabled\n");
     } else {
-        printf(RED "Fail: rsyslog service is not enabled\n" RESET);
+        printf("Fail: rsyslog service is not enabled\n");
         printf("Action: Run 'sudo systemctl enable rsyslog'\n");
     }
 }
@@ -398,9 +393,9 @@ void test_rsyslog_default_permissions() {
         check_command("grep ^\\$FileCreateMode /etc/rsyslog.conf /etc/rsyslog.d/*.conf", "0600") ||
         check_command("grep ^\\$FileCreateMode /etc/rsyslog.conf /etc/rsyslog.d/*.conf", "0440") ||
         check_command("grep ^\\$FileCreateMode /etc/rsyslog.conf /etc/rsyslog.d/*.conf", "0400")) {
-        printf(GREEN "Pass: rsyslog file permissions are configured correctly\n" RESET);
+        printf("Pass: rsyslog file permissions are configured correctly\n");
     } else {
-        printf(RED "Fail: rsyslog file permissions are not configured correctly\n" RESET);
+        printf("Fail: rsyslog file permissions are not configured correctly\n");
         printf("Action: Edit /etc/systemd/journald.conf and set 'Compress=yes'\n");
         printf("Then run 'sudo systemctl restart systemd-journald'\n");
     }
@@ -410,9 +405,9 @@ void test_rsyslog_default_permissions() {
 //     printf("Test: 4.2.2.1 Ensure journald is configured to send logs to rsyslog (Automated)\n");
 //     if (check_command("grep -e \"^\\s*ForwardToSyslog\" /etc/systemd/journald.conf", "ForwardToSyslog=yes") &&
 //         !check_command("grep -e \"^\\s*ForwardToSyslog\" /etc/systemd/journald.conf", "#ForwardToSyslog=yes")) {
-//         printf(GREEN "Pass: journald is configured to send logs to rsyslog\n" RESET);
+//         printf("Pass: journald is configured to send logs to rsyslog\n");
 //     } else {
-//         printf(RED "Fail: journald is not configured to send logs to rsyslog\n" RESET);
+//         printf("Pass: journald is not configured to send logs to rsyslog\n");
 //     }
 // }
 
@@ -420,9 +415,9 @@ void test_rsyslog_default_permissions() {
 //     printf("Test: 4.2.2.2 Ensure journald is configured to compress large log files (Automated)\n");
 //     if (check_command("grep -e \"^\\s*Compress\" /etc/systemd/journald.conf", "Compress=yes") &&
 //         !check_command("grep -e \"^\\s*Compress\" /etc/systemd/journald.conf", "#Compress=yes")) {
-//         printf(GREEN "Pass: journald compression is enabled\n" RESET);
+//         printf("Pass: journald compression is enabled\n");
 //     } else {
-//         printf(RED "Fail: journald compression is not enabled\n" RESET);
+//         printf("Pass: journald compression is not enabled\n");
 //     }
 // }
 
@@ -430,74 +425,74 @@ void test_rsyslog_default_permissions() {
 //     printf("Test: 4.2.2.3 Ensure journald is configured to write logfiles to persistent disk (Automated)\n");
 //     if (check_command("grep -e \"^\\s*Storage\" /etc/systemd/journald.conf", "Storage=persistent") &&
 //         !check_command("grep -e \"^\\s*Storage\" /etc/systemd/journald.conf", "#Storage=persistent")) {
-//         printf(GREEN "Pass: journald is configured to use persistent storage\n" RESET);
+//         printf("Pass: journald is configured to use persistent storage\n");
 //     } else {
-//         printf(RED "Fail: journald is not configured to use persistent storage\n" RESET);
+//         printf("Pass: journald is not configured to use persistent storage\n");
 //     }
 // }
 
 void skip_test(const char *test_name) {
     printf("Test: %s\n", test_name);
-    printf(BLUE "Skip: This audit has to be done manually\n" RESET);
+    printf("Skip: This audit has to be done manually\n");
 }
 
 int main() {
     // 4.1 - Configure System Accounting
     test_auditd_installed();    // 4.1.1.1
-    sleep(1);
+    // sleep(1);
     test_auditd_service_enabled();  // 4.1.1.2
-    sleep(1);
+    // sleep(1);
     test_auditd_enabled_at_boot();  // 4.1.1.3
-    sleep(1);
+    // sleep(1);
     skip_test("4.1.1.4 Ensure audit_backlog_limit is sufficient (Manual)"); // 4.1.1.4
-    sleep(1);
+    // sleep(1);
     skip_test("4.1.2.1 Ensure audit log storage size is configured (Manual)");  // 4.1.2.1
-    sleep(1);
+    // sleep(1);
     test_audit_log_not_deleted();   // 4.1.2.2
-    sleep(1);
+    // sleep(1);
     test_audit_logs_on_full();  // 4.1.2.3
-    sleep(1);
+    // sleep(1);
     // test_time_change_events_collected();    // 4.1.3
     test_user_group_info_events();  // 4.1.4
-    sleep(1);
+    // sleep(1);
     test_network_environment_events();  // 4.1.5
-    sleep(1);
+    // sleep(1);
     // test_mac_policy_events();   // 4.1.6
     test_login_logout_events(); // 4.1.7
-    sleep(1);
+    // sleep(1);
     test_session_initiation_events();   // 4.1.8
-    sleep(1);
+    // sleep(1);
     test_permission_modification_events();  // 4.1.9
-    sleep(1);
+    // sleep(1);
     test_unsuccessful_file_access_attempts();   // 4.1.10
-    sleep(1);
+    // sleep(1);
     skip_test("4.1.11 Ensure use of privileged commands is collected (Manual)");    // 4.1.11
-    sleep(1);
+    // sleep(1);
     test_mounts_collection();   // 4.1.12
-    sleep(1);
+    // sleep(1);
     test_file_deletion_collection();    // 4.1.13
-    sleep(1);
+    // sleep(1);
     test_sudoers_scope_collection();    // 4.1.14
-    sleep(1);
+    // sleep(1);
     test_sudo_command_execution_collection();   // 4.1.15
-    sleep(1);
+    // sleep(1);
     // test_kernel_module_loading_collection();    // 4.1.16
     test_audit_immutable_configuration();   // 4.1.17
-    sleep(2);
+    // sleep(2);
 
     // 4.2 - Configure Logging
     test_rsyslog_installed();
-    sleep(1);
+    // sleep(1);
     test_rsyslog_service_enabled();
-    sleep(1);
+    // sleep(1);
     skip_test("4.2.1.3 Ensure logging is configured (Manual)");
-    sleep(1);
+    // sleep(1);
     test_rsyslog_default_permissions();
-    sleep(1);
+    // sleep(1);
     skip_test("4.2.1.5 Ensure rsyslog is configured to send logs to a remote log host (Manual)");
-    sleep(1);
+    // sleep(1);
     skip_test("4.2.1.6 Ensure remote rsyslog messages are only accepted on designated log hosts (Manual)");
-    sleep(1);
+    // sleep(1);
     // test_journald_forward_to_rsyslog();
     // test_journald_compression();
     // test_journald_persistent_storage();
