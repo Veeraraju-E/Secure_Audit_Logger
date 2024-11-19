@@ -295,110 +295,13 @@ int check_command_5_5(const char *command, const char *expected_output)
     return 0;
 }
 
-//Ensures minimum days between password changes is configured
-void test_minimum_days_between_password_changes() //Checks whether the system enforces a minimum number of days between password changes. The configuration for this is found in /etc/login.defs under the PASS_MIN_DAYS setting.
-{
-    printf("Test: 5.5.1.1 Ensure minimum days between password changes is configured (Automated)\n");
-
-    char command[128];
-    snprintf(command, sizeof(command), "grep PASS_MIN_DAYS /etc/login.defs | grep --invert-match \"#\"");
-    char output[128];
-    FILE *fp = popen(command, "r");
-    if (fp != NULL && fgets(output, sizeof(output), fp) != NULL) 
-    {
-        int mindays = atoi(strchr(output, '=') + 1); // Extract the number after "PASS_MIN_DAYS"
-        fclose(fp);
-
-        if (mindays > 0) 
-        {
-            snprintf(command, sizeof(command), "awk -F : '(/^[^:]+:[^!*]/ && $4 < 1){print $1 \" \" $4}' /etc/shadow"); // 4th field (corresponding to days) is checked
-            fp = popen(command, "r");
-            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) {
-                printf("Pass: Minimum days between password changes is configured\n");
-            } 
-            else {
-                printf("Fail: Minimum days between password changes is not configured\n");
-            }
-            fclose(fp);
-        } 
-        else 
-        {
-            printf("Fail: Minimum days between password changes is not configured\n");
-        }
-    }
-}
-
-//Ensures password expiration is 365 days or less
-void test_password_expiration() //Ensures that the system enforces a password expiration policy of no more than 365 days.
-{
-    printf("Test: 5.5.1.2 Ensure password expiration is 365 days or less (Automated)\n");
-
-    char command[128];
-    snprintf(command, sizeof(command), "grep PASS_MAX_DAYS /etc/login.defs | grep --invert-match \"#\"");
-    char output[128];
-    FILE *fp = popen(command, "r");
-    if (fp != NULL && fgets(output, sizeof(output), fp) != NULL) 
-    {
-        int maxdays = atoi(strchr(output, '=') + 1); // Extract the number after "PASS_MAX_DAYS"
-        fclose(fp);
-
-        if (maxdays < 366) 
-        {
-            snprintf(command, sizeof(command), "awk -F: '(/^[^:]+:[^!*]/ && ($5>365||$5~/([0-1]|-1)/)){print $1 \" \" $5}' /etc/shadow");
-            fp = popen(command, "r");
-            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) {
-                printf("Pass: Password expiration is 365 days or less\n");
-            } 
-            else {
-                printf("Fail: Password expiration is not configured correctly\n");
-            }
-            fclose(fp);
-        } 
-        else {
-            printf("Fail: Password expiration exceeds 365 days\n");
-        }
-    }
-}
-
-//Ensures password expiration warning days is 7 or more
-void test_password_expiration_warning() //It checks the PASS_WARN_AGE setting in /etc/login.defs to ensure it is greater than 6 (i.e., 7 or more days).
-{
-    printf("Test: 5.5.1.3 Ensure password expiration warning days is 7 or more (Automated)\n");
-
-    char command[128];
-    snprintf(command, sizeof(command), "grep PASS_WARN_AGE /etc/login.defs | grep --invert-match \"#\"");
-    char output[128];
-    FILE *fp = popen(command, "r");
-    if (fp != NULL && fgets(output, sizeof(output), fp) != NULL) 
-    {
-        int warnage = atoi(strchr(output, '=') + 1); // Extract the number after "PASS_WARN_AGE"
-        fclose(fp);
-
-        if (warnage > 6) 
-        {
-            snprintf(command, sizeof(command), "awk -F: '(/^[^:]+:[^!*]/ && $6<7){print $1 \" \" $6}' /etc/shadow");
-            fp = popen(command, "r");
-            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) {
-                printf("Pass: Password expiration warning days is 7 or more\n");
-            } 
-            else {
-                printf("Fail: Password expiration warning days is less than 7\n");
-            }
-            fclose(fp);
-        } 
-        else {
-            printf("Fail: Password expiration warning days is less than 7\n");
-        }
-    }
-}
-
 //Ensures system accounts are secured
 void test_system_accounts_secured() //Ensures that no system accounts have invalid shell settings (e.g., /usr/sbin/nologin or /bin/false).
 {
     printf("Test: 5.5.2 Ensure system accounts are secured (Automated)\n");
 
-    if (check_command_5_5("awk -F: '$1!~/(root|sync|shutdown|halt|^\\+)/ && $3<'$(awk '/^\\s*UID_MIN/{print $2}' /etc/login.defs)' && $7!~/((\\/usr)?\\/sbin\\/nologin)/ && $7!~/(\\/bin)?\\/false/ {print}' /etc/passwd", "") &&
-        check_command_5_5("awk -F: '($1!~/(root|^\\+)/ && $3<'$(awk '/^\\s*UID_MIN/{print $2}' /etc/login.defs)') {print $1}' /etc/passwd | xargs -I '{}' passwd -S '{}' | awk '($2!~/LK?/) {print $1}'", "")) 
+    if (check_command("awk -F: '$1!~/(root|sync|shutdown|halt|^\\+)/ && $3<'$(awk '/^\\s*UID_MIN/{print $2}' /etc/login.defs)' && $7!~/((\\/usr)?\\/sbin\\/nologin)/ && $7!~/(\\/bin)?\\/false/ {print}' /etc/passwd", "") &&
+        check_command("awk -F: '($1!~/(root|^\\+)/ && $3<'$(awk '/^\\s*UID_MIN/{print $2}' /etc/login.defs)') {print $1}' /etc/passwd | xargs -I '{}' passwd -S '{}' | awk '($2!~/LK?/) {print $1}'", "")) 
     {
         printf("Pass: System accounts are secured\n");
     } 
@@ -413,7 +316,7 @@ void test_default_group_for_root() //Checks the /etc/passwd file to ensure that 
 {
     printf("Test: 5.5.3 Ensure default group for the root account is GID 0 (Automated)\n");
 
-    if (check_command_5_5("grep \"^root:\" /etc/passwd | cut -f4 -d:", "0")) {
+    if (check_command("grep \"^root:\" /etc/passwd | cut -f4 -d:", "0")) {
         printf("Pass: Default group for root is GID 0\n");
     } 
     else {
@@ -426,7 +329,7 @@ void test_default_user_shell_timeout() //Checks the shell timeout settings (spec
 {
     printf("Test: 5.5.5 Ensure default user shell timeout is 900 seconds or less (Automated)\n");
 
-    if (check_command_5_5("check_timeout_settings", "PASSED")) 
+    if (check_command("check_timeout_settings", "PASSED")) 
     {
         printf("Pass: Default user shell timeout is 900 seconds or less\n");
     } 
@@ -450,7 +353,7 @@ void test_access_to_su_command() //It checks for the pam_wheel.so module in /etc
 
     char command[128];
     snprintf(command, sizeof(command), "grep pam_wheel.so /etc/pam.d/su");
-    if (check_command_5_5(command, "auth required pam_wheel.so use_uid group=")) 
+    if (check_command(command, "auth required pam_wheel.so use_uid group=")) 
     {
         printf("Pass: Access to the su command is restricted\n");
     } 
@@ -460,37 +363,9 @@ void test_access_to_su_command() //It checks for the pam_wheel.so module in /etc
     }
 }
 
-
-
-int check_command_5_3(const char *command, const char *expected_output) {
-    char buffer[128];
-    FILE *fp;
-    int status = 0;
-
-    // Open the command for reading.
-    fp = popen(command, "r");
-    if (fp == NULL) {
-        printf("Failed to run command: %s\n", command);
-        return 0;
-    }
-
-    // Read the output line by line and compare with expected_output.
-    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-        if (strstr(buffer, expected_output) != NULL) {
-            status = 1;  // Match found.
-            break;
-        }
-    }
-
-    // Close the file pointer.
-    fclose(fp);
-
-    return status;
-}
-
 void test_permissions_on_etc_ssh_sshd_config() {
     printf("Test: 5.3.1 Ensure permissions on /etc/ssh/sshd_config are configured (Automated)\n");
-    if (check_command_5_3("stat /etc/ssh/sshd_config", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0640/-rw-r-----)")) {
+    if (check_command("stat /etc/ssh/sshd_config", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0640/-rw-r-----)")) {
         printf("Pass: Permissions on /etc/ssh/sshd_config are correctly configured\n");
     } else {
         printf("Fail: Permissions on /etc/ssh/sshd_config are not correctly configured\n");
@@ -499,7 +374,7 @@ void test_permissions_on_etc_ssh_sshd_config() {
 
 void test_permissions_on_ssh_private_host_key_files() {
     printf("Test: 5.3.2 Ensure permissions on SSH private host key files are configured (Automated)\n");
-    if (check_command_5_3("find /etc/ssh -type f -name 'ssh_host_*_key' -exec stat {} \\;", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0600/-rw-------)")) {
+    if (check_command("find /etc/ssh -type f -name 'ssh_host_*_key' -exec stat {} \\;", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0600/-rw-------)")) {
         printf("Pass: Permissions on SSH private host key files are correctly configured\n");
     } else {
         printf("Fail: Permissions on SSH private host key files are not correctly configured\n");
@@ -508,7 +383,7 @@ void test_permissions_on_ssh_private_host_key_files() {
 
 void test_permissions_on_ssh_public_host_key_files() {
     printf("Test: 5.3.3 Ensure permissions on SSH public host key files are configured (Automated)\n");
-    if (check_command_5_3("find /etc/ssh -type f -name 'ssh_host_*_key.pub' -exec stat {} \\;", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0644/-rw-r--r--)")) {
+    if (check_command("find /etc/ssh -type f -name 'ssh_host_*_key.pub' -exec stat {} \\;", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0644/-rw-r--r--)")) {
         printf("Pass: Permissions on SSH public host key files are correctly configured\n");
     } else {
         printf("Fail: Permissions on SSH public host key files are not correctly configured\n");
@@ -517,7 +392,7 @@ void test_permissions_on_ssh_public_host_key_files() {
 
 void test_ssh_access_is_limited() {
     printf("Test: 5.3.4 Ensure SSH access is limited (Automated)\n");
-    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep -Ei '^\s*(allow|deny)(users|groups)\\s+\\S+'", "allowusers")) {
+    if (check_command("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep -Ei '^\s*(allow|deny)(users|groups)\\s+\\S+'", "allowusers")) {
         printf("Pass: SSH access is correctly limited\n");
     } else {
         printf("Fail: SSH access is not correctly limited\n");
@@ -526,7 +401,7 @@ void test_ssh_access_is_limited() {
 
 void test_ssh_root_login_disabled() {
     printf("Test: 5.3.5 Ensure SSH root login is disabled (Automated)\n");
-    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep permitrootlogin", "PermitRootLogin no")) {
+    if (check_command("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep permitrootlogin", "PermitRootLogin no")) {
         printf("Pass: SSH root login is correctly disabled\n");
     } else {
         printf("Fail: SSH root login is not correctly disabled\n");
@@ -535,7 +410,7 @@ void test_ssh_root_login_disabled() {
 
 void test_etc_ssh_disabled() {
     printf("Test: 5.3.6 Ensure SSH is disabled if not needed (Automated)\n");
-    if (check_command_5_3("systemctl is-enabled ssh", "disabled")) {
+    if (check_command("systemctl is-enabled ssh", "disabled")) {
         printf("Pass: SSH is correctly disabled if not needed\n");
     } else {
         printf("Fail: SSH is not correctly disabled if not needed\n");
@@ -560,12 +435,6 @@ int main()
     test_sudo_commands_use_pty();
     test_sudo_log_file_exists();
 
-    //5.4
-    test_password_creation_requirements();
-    test_lockout_for_failed_password_attempts();
-    test_password_reuse_limited();
-    test_password_hashing_algorithm_sha512();
-
     //5.3
     test_permissions_on_etc_ssh_sshd_config();
     test_permissions_on_ssh_private_host_key_files();
@@ -573,11 +442,14 @@ int main()
     test_ssh_access_is_limited();
     test_ssh_root_login_disabled();
     test_etc_ssh_disabled();
-    
+
+    //5.4
+    test_password_creation_requirements();
+    test_lockout_for_failed_password_attempts();
+    test_password_reuse_limited();
+    test_password_hashing_algorithm_sha512();
+
     //5.5
-    test_minimum_days_between_password_changes();
-    test_password_expiration();
-    test_password_expiration_warning();
     test_system_accounts_secured();
     test_default_group_for_root();
     test_default_user_shell_timeout();
