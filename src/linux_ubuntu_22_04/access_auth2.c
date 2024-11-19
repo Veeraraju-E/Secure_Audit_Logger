@@ -106,7 +106,7 @@ void test_cron_restricted_to_authorized_users() //Prevents unauthorized users fr
     printf("Test: 5.1.8 Ensure cron is restricted to authorized users (Automated)\n");
     if (!access("/etc/cron.deny", F_OK) && check_permissions("/etc/cron.allow", 0640, 0, 0)) {
         printf("Pass: cron is restricted to authorized users\n");
-    } 
+    }
     else {
         printf("Fail: cron is not restricted to authorized users\n");
     }
@@ -421,21 +421,6 @@ void test_default_group_for_root() //Checks the /etc/passwd file to ensure that 
     }
 }
 
-//Ensures default user umask is 027 or more restrictive
-void test_default_user_umask() //Runs two checks: one to confirm that the umask is set and another to ensure it’s not set to a less restrictive value.
-{
-    printf("Test: 5.5.4 Ensure default user umask is 027 or more restrictive (Automated)\n");
-
-    if (check_command_5_5("check_default_umask", "Default user umask is set") && check_command_5_5("check_for_less_restrictive_umask", "")) 
-    {
-        printf("Pass: Default user umask is 027 or more restrictive\n");
-    } 
-    else 
-    {
-        printf("Fail: Default user umask is not 027 or more restrictive\n");
-    }
-}
-
 //Ensures default user shell timeout is 900 seconds or less
 void test_default_user_shell_timeout() //Checks the shell timeout settings (specifically the TMOUT variable) to ensure it’s properly configured to meet this requirement.
 {
@@ -539,108 +524,8 @@ void test_ssh_access_is_limited() {
     }
 }
 
-void test_ssh_loglevel_is_appropriate() {
-    printf("Test: 5.3.5 Ensure SSH LogLevel is appropriate (Automated)\n");
-    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep loglevel", "LogLevel VERBOSE") ||
-        check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep loglevel", "loglevel INFO")) {
-        printf("Pass: SSH LogLevel is correctly configured\n");
-    } else {
-        printf("Fail: SSH LogLevel is not correctly configured\n");
-    }
-}
-
-void test_ssh_x11_forwarding_disabled() {
-    printf("Test: 5.3.6 Ensure SSH X11 forwarding is disabled (Automated)\n");
-    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep -i x11forwarding", "x11forwarding no")) {
-        printf("Pass: SSH X11 forwarding is correctly disabled\n");
-    } else {
-        printf("Fail: SSH X11 forwarding is not correctly disabled\n");
-    }
-}
-
-void test_ssh_max_auth_tries_configured() {
-    printf("Test: 5.3.7 Ensure SSH MaxAuthTries is configured (Automated)\n");
-    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep maxauthtries", "MaxAuthTries 3")) {
-        printf("Pass: SSH MaxAuthTries is correctly configured\n");
-    } else {
-        printf("Fail: SSH MaxAuthTries is not correctly configured\n");
-    }
-}
-
-void test_permissions_on_etc_gshadow() {
-    printf("Test: 5.3.8 Ensure permissions on /etc/gshadow are configured (Automated)\n");
-    if (check_command_5_3("stat /etc/gshadow", "Access: (0640/-rw-r-----) Uid: ( 0/ root) Gid: ( 0/ shadow)")) {
-        printf("Pass: Permissions on /etc/gshadow are correctly configured\n");
-    } else {
-        printf("Fail: Permissions on /etc/gshadow are not correctly configured\n");
-    }
-}
-
-void test_permissions_on_etc_shadow() {
-    printf("Test: 5.3.9 Ensure permissions on /etc/shadow are configured (Automated)\n");
-    if (check_command_5_3("stat /etc/shadow", "Access: (0640/-rw-r-----) Uid: ( 0/ root) Gid: ( 0/ shadow)")) {
-        printf("Pass: Permissions on /etc/shadow are correctly configured\n");
-    } else {
-        printf("Fail: Permissions on /etc/shadow are not correctly configured\n");
-    }
-}
-
-void test_permissions_on_etc_passwd() {
-    printf("Test: 5.3.10 Ensure permissions on /etc/passwd are configured (Automated)\n");
-    if (check_command_5_3("stat /etc/passwd", "Access: (0644/-rw-r--r--) Uid: ( 0/ root) Gid: ( 0/ root)")) {
-        printf("Pass: Permissions on /etc/passwd are correctly configured\n");
-    } else {
-        printf("Fail: Permissions on /etc/passwd are not correctly configured\n");
-    }
-}
-
-void test_etc_passwd_is_immutable() {
-    printf("Test: 5.3.11 Ensure /etc/passwd is immutable (Automated)\n");
-    if (check_command_5_3("lsattr /etc/passwd", "i")) {
-        printf("Pass: /etc/passwd is correctly immutable\n");
-    } else {
-        printf("Fail: /etc/passwd is not correctly immutable\n");
-    }
-}
-
-void test_etc_shadow_is_immutable() {
-    printf("Test: 5.3.12 Ensure /etc/shadow is immutable (Automated)\n");
-    if (check_command_5_3("lsattr /etc/shadow", "i")) {
-        printf("Pass: /etc/shadow is correctly immutable\n");
-    } else {
-        printf("Fail: /etc/shadow is not correctly immutable\n");
-    }
-}
-
-void test_etc_group_is_immutable() {
-    printf("Test: 5.3.13 Ensure /etc/group is immutable (Automated)\n");
-    if (check_command_5_3("lsattr /etc/group", "i")) {
-        printf("Pass: /etc/group is correctly immutable\n");
-    } else {
-        printf("Fail: /etc/group is not correctly immutable\n");
-    }
-}
-
-void test_etc_gshadow_is_immutable() {
-    printf("Test: 5.3.14 Ensure /etc/gshadow is immutable (Automated)\n");
-    if (check_command_5_3("lsattr /etc/gshadow", "i")) {
-        printf("Pass: /etc/gshadow is correctly immutable\n");
-    } else {
-        printf("Fail: /etc/gshadow is not correctly immutable\n");
-    }
-}
-
-void test_rhosts_files_disabled() {
-    printf("Test: 5.3.15 Ensure .rhosts files are disabled (Automated)\n");
-    if (check_command_5_3("grep -i '^*.*rhosts' /etc/ssh/sshd_config", "")) {
-        printf("Pass: .rhosts files are correctly disabled\n");
-    } else {
-        printf("Fail: .rhosts files are not correctly disabled\n");
-    }
-}
-
 void test_ssh_root_login_disabled() {
-    printf("Test: 5.3.16 Ensure SSH root login is disabled (Automated)\n");
+    printf("Test: 5.3.5 Ensure SSH root login is disabled (Automated)\n");
     if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep permitrootlogin", "PermitRootLogin no")) {
         printf("Pass: SSH root login is correctly disabled\n");
     } else {
@@ -648,25 +533,14 @@ void test_ssh_root_login_disabled() {
     }
 }
 
-void test_ssh_protocol_is_2() {
-    printf("Test: 5.3.17 Ensure SSH protocol is set to 2 (Automated)\n");
-    if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep protocol", "Protocol 2")) {
-        printf("Pass: SSH protocol is correctly set to 2\n");
-    } else {
-        printf("Fail: SSH protocol is not correctly set to 2\n");
-    }
-}
-
 void test_etc_ssh_disabled() {
-    printf("Test: 5.3.18 Ensure SSH is disabled if not needed (Automated)\n");
+    printf("Test: 5.3.6 Ensure SSH is disabled if not needed (Automated)\n");
     if (check_command_5_3("systemctl is-enabled ssh", "disabled")) {
         printf("Pass: SSH is correctly disabled if not needed\n");
     } else {
         printf("Fail: SSH is not correctly disabled if not needed\n");
     }
 }
-//Pujit's additions end here
-//----------------------------------------------------------------------------------------------------------------------------------
 
 int main() 
 {
@@ -697,30 +571,15 @@ int main()
     test_permissions_on_ssh_private_host_key_files();
     test_permissions_on_ssh_public_host_key_files();
     test_ssh_access_is_limited();
-    test_ssh_loglevel_is_appropriate();
-    test_ssh_x11_forwarding_disabled();
-    test_ssh_max_auth_tries_configured();
-    test_permissions_on_etc_gshadow();
-    test_permissions_on_etc_shadow();
-    test_permissions_on_etc_passwd();
-    test_etc_passwd_is_immutable();
-    test_etc_shadow_is_immutable();
-    test_etc_group_is_immutable();
-    test_etc_gshadow_is_immutable();
-    test_rhosts_files_disabled();
     test_ssh_root_login_disabled();
-    test_ssh_protocol_is_2();
     test_etc_ssh_disabled();
     
     //5.5
     test_minimum_days_between_password_changes();
     test_password_expiration();
     test_password_expiration_warning();
-    test_inactive_password_lock();
-    test_users_last_password_change();
     test_system_accounts_secured();
     test_default_group_for_root();
-    test_default_user_umask();
     test_default_user_shell_timeout();
     test_root_login_restricted();
     test_access_to_su_command();

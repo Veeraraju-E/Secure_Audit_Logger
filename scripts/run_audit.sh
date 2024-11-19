@@ -35,6 +35,7 @@ output_file="audit_results/audit_${timestamp}.log"
         echo "" 
         echo "=== $section_name ==="
         echo "-----------------------------------"
+        # Log the command output to the log file
         $command
         echo "-----------------------------------"
         echo "Finished $section_name"
