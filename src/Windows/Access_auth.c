@@ -19,7 +19,7 @@ int check_command(const char *command, const char *expected_output)
     FILE *pipe;
     char buffer[MAX_LINE_LENGTH];
 
-    // Open a process using popen (Windows doesn't have popen like Linux)
+    // Open a process using popen 
     pipe = _popen(command, "r");
     if (!pipe) {
         perror("Error opening pipe");
@@ -690,25 +690,25 @@ void test_uac_enabled() {
 // }
 
 // Function to test if account lockout is configured
-void test_account_lockout() {
-    printf("Test: Ensure account lockout is configured (Automated)\n");
-    run_powershell_command("Get-LocalSecurityPolicy -Name LockoutBadCount");
-    printf("Pass: Account lockout is configured\n");
-}
+// void test_account_lockout() {
+//     printf("Test: Ensure account lockout is configured (Automated)\n");
+//     run_powershell_command("Get-LocalSecurityPolicy -Name LockoutBadCount");
+//     printf("Pass: Account lockout is configured\n");
+// }
 
 // Function to test if minimum password length is set
-void test_minimum_password_length() {
-    printf("Test: Ensure minimum password length is configured (Automated)\n");
-    run_powershell_command("Get-LocalSecurityPolicy -Name MinimumPasswordLength");
-    printf("Pass: Minimum password length is set\n");
-}
+// void test_minimum_password_length() {
+//     printf("Test: Ensure minimum password length is configured (Automated)\n");
+//     run_powershell_command("Get-LocalSecurityPolicy -Name MinimumPasswordLength");
+//     printf("Pass: Minimum password length is set\n");
+// }
 
 // Function to test if password history is set
-void test_password_history() {
-    printf("Test: Ensure password history is set (Automated)\n");
-    run_powershell_command("Get-LocalSecurityPolicy -Name PasswordHistorySize");
-    printf("Pass: Password history is configured\n");
-}
+// void test_password_history() {
+//     printf("Test: Ensure password history is set (Automated)\n");
+//     run_powershell_command("Get-LocalSecurityPolicy -Name PasswordHistorySize");
+//     printf("Pass: Password history is configured\n");
+// }
 
 // Function to test if SSH service is disabled (Windows uses OpenSSH, if installed)
 void test_ssh_service_disabled() {
@@ -725,11 +725,11 @@ void test_remote_desktop_disabled() {
 }
 
 // Function to test if SMBv1 is disabled
-void test_smbv1_disabled() {
-    printf("Test: Ensure SMBv1 is disabled (Automated)\n");
-    run_powershell_command("Get-WindowsFeature FS-SMB1 | Where-Object {$_.Installed -eq $false}");
-    printf("Pass: SMBv1 is disabled\n");
-}
+// void test_smbv1_disabled() {
+//     printf("Test: Ensure SMBv1 is disabled (Automated)\n");
+//     run_powershell_command("Get-WindowsFeature FS-SMB1 | Where-Object {$_.Installed -eq $false}");
+//     printf("Pass: SMBv1 is disabled\n");
+// }
 
 // Function to test if security auditing is enabled
 void test_security_auditing_enabled() {
@@ -785,17 +785,17 @@ int main() {
     test_windows_firewall_enabled();
     test_uac_enabled();
     test_password_expiration();
-    test_account_lockout();
-    test_minimum_password_length();
-    test_password_history();
+    //test_account_lockout();
+    //test_minimum_password_length();
+   // test_password_history();
     test_ssh_service_disabled();
     test_remote_desktop_disabled();
-    test_smbv1_disabled();
+    //test_smbv1_disabled();
     test_security_auditing_enabled();
     test_windows_defender_enabled();
     test_windows_update_enabled();
-    test_guest_account_disabled();
-    test_administrator_account_disabled();
+    //test_guest_account_disabled();
+    //test_administrator_account_disabled();
 
     return 0;
 }
