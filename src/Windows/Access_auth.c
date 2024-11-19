@@ -5,13 +5,13 @@
 #include <sys/stat.h>
 #include <direct.h>
 #include <tchar.h>
-#include <common/colors.h>
+#include "../common/colors.h"
 
 
 #define MAX_LINE_LENGTH 512
 
 // Function prototype declaration at the top
-void check_command_5_3(const char *command);
+// void check_command(const char *command);
 
 
 int check_command(const char *command, const char *expected_output)
@@ -19,7 +19,7 @@ int check_command(const char *command, const char *expected_output)
     FILE *pipe;
     char buffer[MAX_LINE_LENGTH];
 
-    // Open a process using popen (Windows doesn't have popen like Linux)
+    // Open a process using popen 
     pipe = _popen(command, "r");
     if (!pipe) {
         perror("Error opening pipe");
@@ -170,7 +170,7 @@ void test_elevated_command_logging()
     {
         printf(GREEN "Pass: Elevated commands are logged\n" RESET);
     } 
-    else 
+    else
     {
         printf(RED "Fail: Elevated commands are not logged\n" RESET);
     }
@@ -509,31 +509,31 @@ void test_ssh_access_is_limited() {
 }
 
 // Windows equivalent of check_command_5_3
-int check_command(const char *command, const char *expected_output) {
-    char buffer[128];
-    FILE *fp;
-    int status = 0;
+// int check_command_5_3(const char *command, const char *expected_output) {
+//     char buffer[MAX_LINE_LENGTH];
+//     FILE *fp;
+//     int status = 0;
 
-    // Open the command for reading.
-    fp = popen(command, "r");
-    if (fp == NULL) {
-        printf("Failed to run command: %s\n", command);
-        return 0;
-    }
+//     // Open the command for reading.
+//     fp = popen(command, "r");
+//     if (fp == NULL) {
+//         printf("Failed to run command: %s\n", command);
+//         return 0;
+//     }
 
-    // Read the output line by line and compare with expected_output.
-    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-        if (strstr(buffer, expected_output) != NULL) {
-            status = 1;  // Match found.
-            break;
-        }
-    }
+//     // Read the output line by line and compare with expected_output.
+//     while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+//         if (strstr(buffer, expected_output) != NULL) {
+//             status = 1;  // Match found.
+//             break;
+//         }
+//     }
 
-    // Close the file pointer.
-    fclose(fp);
+//     // Close the file pointer.
+//     fclose(fp);
 
-    return status;
-}
+//     return status;
+// }
 
 void test_ssh_loglevel_is_appropriate() {
     printf("Test: 5.3.5 Ensure SSH LogLevel is appropriate (Automated)\n");
@@ -683,40 +683,32 @@ void test_uac_enabled() {
 }
 
 // First definition of test_password_expiration (line 270)
-void test_password_expiration() {
-    printf("Test: Ensure password expiration is configured (Automated)\n");
-    run_powershell_command("Get-LocalUser | Where-Object {$_.PasswordNeverExpires -eq $false}");
-    printf("Pass: Password expiration is configured\n");
-}
-
-
-// Function to test if password expiration is configured
-void test_password_expiration() {
-    printf("Test: Ensure password expiration is configured (Automated)\n");
-    run_powershell_command("Get-LocalUser | Where-Object {$_.PasswordNeverExpires -eq $false}");
-    printf("Pass: Password expiration is configured\n");
-}
+// void test_password_expiration() {
+//     printf("Test: Ensure password expiration is configured (Automated)\n");
+//     run_powershell_command("Get-LocalUser | Where-Object {$_.PasswordNeverExpires -eq $false}");
+//     printf("Pass: Password expiration is configured\n");
+// }
 
 // Function to test if account lockout is configured
-void test_account_lockout() {
-    printf("Test: Ensure account lockout is configured (Automated)\n");
-    run_powershell_command("Get-LocalSecurityPolicy -Name LockoutBadCount");
-    printf("Pass: Account lockout is configured\n");
-}
+// void test_account_lockout() {
+//     printf("Test: Ensure account lockout is configured (Automated)\n");
+//     run_powershell_command("Get-LocalSecurityPolicy -Name LockoutBadCount");
+//     printf("Pass: Account lockout is configured\n");
+// }
 
 // Function to test if minimum password length is set
-void test_minimum_password_length() {
-    printf("Test: Ensure minimum password length is configured (Automated)\n");
-    run_powershell_command("Get-LocalSecurityPolicy -Name MinimumPasswordLength");
-    printf("Pass: Minimum password length is set\n");
-}
+// void test_minimum_password_length() {
+//     printf("Test: Ensure minimum password length is configured (Automated)\n");
+//     run_powershell_command("Get-LocalSecurityPolicy -Name MinimumPasswordLength");
+//     printf("Pass: Minimum password length is set\n");
+// }
 
 // Function to test if password history is set
-void test_password_history() {
-    printf("Test: Ensure password history is set (Automated)\n");
-    run_powershell_command("Get-LocalSecurityPolicy -Name PasswordHistorySize");
-    printf("Pass: Password history is configured\n");
-}
+// void test_password_history() {
+//     printf("Test: Ensure password history is set (Automated)\n");
+//     run_powershell_command("Get-LocalSecurityPolicy -Name PasswordHistorySize");
+//     printf("Pass: Password history is configured\n");
+// }
 
 // Function to test if SSH service is disabled (Windows uses OpenSSH, if installed)
 void test_ssh_service_disabled() {
@@ -733,11 +725,11 @@ void test_remote_desktop_disabled() {
 }
 
 // Function to test if SMBv1 is disabled
-void test_smbv1_disabled() {
-    printf("Test: Ensure SMBv1 is disabled (Automated)\n");
-    run_powershell_command("Get-WindowsFeature FS-SMB1 | Where-Object {$_.Installed -eq $false}");
-    printf("Pass: SMBv1 is disabled\n");
-}
+// void test_smbv1_disabled() {
+//     printf("Test: Ensure SMBv1 is disabled (Automated)\n");
+//     run_powershell_command("Get-WindowsFeature FS-SMB1 | Where-Object {$_.Installed -eq $false}");
+//     printf("Pass: SMBv1 is disabled\n");
+// }
 
 // Function to test if security auditing is enabled
 void test_security_auditing_enabled() {
@@ -761,18 +753,31 @@ void test_windows_update_enabled() {
 }
 
 // Function to test if guest account is disabled
+// void test_guest_account_disabled() {
+//     printf("Test: Ensure guest account is disabled (Automated)\n");
+//     run_powershell_command("Get-LocalUser | Where-Object {$_.Name -eq 'Guest' -and $_.Enabled -eq $false}");
+//     printf("Pass: Guest account is disabled\n");
+// }
+
 void test_guest_account_disabled() {
     printf("Test: Ensure guest account is disabled (Automated)\n");
-    run_powershell_command("Get-LocalUser | Where-Object {$_.Name -eq 'Guest' -and $_.Enabled -eq $false}");
-    printf("Pass: Guest account is disabled\n");
+
+    // Use net user to check the status of the Guest account
+    int result = system("net user Guest | findstr /C:\"Account active\" | findstr /C:\"No\"");
+    if (result == 0) {
+        printf("Pass: Guest account is disabled\n");
+    } else {
+        printf("Fail: Guest account is enabled\n");
+    }
 }
 
+
 // Function to test if the Administrator account is disabled
-void test_administrator_account_disabled() {
-    printf("Test: Ensure the Administrator account is disabled (Automated)\n");
-    run_powershell_command("Get-LocalUser | Where-Object {$_.Name -eq 'Administrator' -and $_.Enabled -eq $false}");
-    printf("Pass: Administrator account is disabled\n");
-}
+// void test_administrator_account_disabled() {
+//     printf("Test: Ensure the Administrator account is disabled (Automated)\n");
+//     run_powershell_command("Get-LocalUser | Where-Object {$_.Name -eq 'Administrator' -and $_.Enabled -eq $false}");
+//     printf("Pass: Administrator account is disabled\n");
+// }
 
 // Main function to run the tests
 int main() {
@@ -780,17 +785,17 @@ int main() {
     test_windows_firewall_enabled();
     test_uac_enabled();
     test_password_expiration();
-    test_account_lockout();
-    test_minimum_password_length();
-    test_password_history();
+    //test_account_lockout();
+    //test_minimum_password_length();
+   // test_password_history();
     test_ssh_service_disabled();
     test_remote_desktop_disabled();
-    test_smbv1_disabled();
+    //test_smbv1_disabled();
     test_security_auditing_enabled();
     test_windows_defender_enabled();
     test_windows_update_enabled();
-    test_guest_account_disabled();
-    test_administrator_account_disabled();
+    //test_guest_account_disabled();
+    //test_administrator_account_disabled();
 
     return 0;
 }

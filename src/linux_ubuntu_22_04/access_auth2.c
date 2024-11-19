@@ -34,8 +34,6 @@ int check_command(const char *command, const char *expected_output)
     return status;
 }
 
-//----------------------------------------------------------------------------------------------------------------------------------
-//Added by Pujit, to be rechecked after running
 int check_service(const char *service) 
 {
     char command[100];
@@ -49,14 +47,15 @@ int check_service(const char *service)
 //Checks file permissions and ownership
 int check_permissions(const char *filepath, mode_t mode, uid_t uid, gid_t gid) 
 {
+    // uid and gid = 0 => root user, 1-999 => system users (daemon/sshd etc), 1000 => human users
     struct stat fileStat;
     if (stat(filepath, &fileStat) != 0) return 0; // File does not exist
 
     if (fileStat.st_uid != uid || fileStat.st_gid != gid) return 0;
-    return (fileStat.st_mode & 0777) == mode;
+    return (fileStat.st_mode & 0777) == mode;   // bitwise and the st_mode with last 9 bits to extract permissions
 }
 
-//Checks if file exists
+// Check if file exists
 int file_exists(const char *filepath) 
 {
     return access(filepath, F_OK) == 0;
@@ -68,38 +67,36 @@ void test_cron_enabled_and_running() //The cron daemon schedules and executes ta
     printf("Test: 5.1.1 Ensure cron daemon is enabled and running (Automated)\n");
     if (check_command("systemctl is-enabled cron", "enabled") && check_command("systemctl status cron | grep 'Active: active (running)'", "active (running)")) 
     {
-        printf(GREEN "Pass: cron daemon is enabled and running\n" RESET);
+        printf("Pass: cron daemon is enabled and running\n");
     } 
     else 
     {
-        printf(RED "Fail: cron daemon is not enabled or running\n" RESET);
+        printf("Fail: cron daemon is not enabled or running\n");
     }
 }
 
 void test_crontab_permissions() //The crontab file contains system-wide scheduled tasks. Restricting its permissions prevents unauthorized users from modifying scheduled jobs.
 {
     printf("Test: 5.1.2 Ensure permissions on /etc/crontab are configured (Automated)\n");
-    if (check_permissions("/etc/crontab", 0700, 0, 0)) 
-    {
-        printf(GREEN "Pass: /etc/crontab permissions are correct\n" RESET);
+    if (check_permissions("/etc/crontab", 0700, 0, 0)) {    // access as root, root a=should have rwx
+        printf("Pass: /etc/crontab permissions are correct\n");
     } 
     else 
     {
-        printf(RED "Fail: /etc/crontab permissions are incorrect\n" RESET);
+        printf("Fail: /etc/crontab permissions are incorrect\n");
     }
 }
 
-//Checks permissions on various cron directories: /etc/cron.hourly, /etc/cron.daily, /etc/cron.weekly, /etc/cron.monthly, and /etc/cron.d.
-void test_cron_directories_permissions(const char *directory, const char *test_name) //These directories contain scripts that are run by cron at regular intervals (hourly, daily, weekly, monthly, or as specified). Securing their permissions helps protect scheduled tasks.
+// Checks permissions on various cron directories: /etc/cron.hourly, /etc/cron.daily, /etc/cron.weekly, /etc/cron.monthly, and /etc/cron.d.
+// These directories contain scripts that are run by cron at regular intervals (hourly, daily, weekly, monthly, or as specified). Securing their permissions helps protect scheduled tasks.
+void test_cron_directories_permissions(const char *directory, const char *test_name)
 {
     printf("Test: %s Ensure permissions on %s are configured (Automated)\n", test_name, directory);
-    if (check_permissions(directory, 0700, 0, 0)) 
-    {
-        printf(GREEN "Pass: %s permissions are correct\n" RESET, directory);
+    if (check_permissions(directory, 0700, 0, 0)) { // only root should have rwx rights
+        printf("Pass: %s permissions are correct\n", directory);
     } 
-    else 
-    {
-        printf(RED "Fail: %s permissions are incorrect\n" RESET, directory);
+    else {
+        printf("Fail: %s permissions are incorrect\n", directory);
     }
 }
 
@@ -107,28 +104,23 @@ void test_cron_directories_permissions(const char *directory, const char *test_n
 void test_cron_restricted_to_authorized_users() //Prevents unauthorized users from scheduling cron jobs, which could lead to security risks or unauthorized system modifications.
 {
     printf("Test: 5.1.8 Ensure cron is restricted to authorized users (Automated)\n");
-    if (!access("/etc/cron.deny", F_OK) &&
-        check_permissions("/etc/cron.allow", 0640, 0, 0)) 
-    {
-        printf(GREEN "Pass: cron is restricted to authorized users\n" RESET);
+    if (!access("/etc/cron.deny", F_OK) && check_permissions("/etc/cron.allow", 0640, 0, 0)) {
+        printf("Pass: cron is restricted to authorized users\n");
     } 
-    else 
-    {
-        printf(RED "Fail: cron is not restricted to authorized users\n" RESET);
+    else {
+        printf("Fail: cron is not restricted to authorized users\n");
     }
 }
 
-//Ensures that access to the at command (used for scheduling one-time jobs) is restricted to authorized users.
-void test_at_restricted_to_authorized_users() //Limits the ability to schedule jobs with at, preventing unauthorized users from running scheduled commands, which could impact security.
+// Ensures that access to the at command (used for scheduling one-time jobs) is restricted to authorized users.
+void test_at_restricted_to_authorized_users() // Limits the ability to schedule jobs with at, preventing unauthorized users from running scheduled commands, which could impact security.
 {
     printf("Test: 5.1.9 Ensure at is restricted to authorized users (Automated)\n");
-    if (!access("/etc/at.deny", F_OK) && check_permissions("/etc/at.allow", 0640, 0, 0)) 
-    {
-        printf(GREEN "Pass: at is restricted to authorized users\n" RESET);
+    if (!access("/etc/at.deny", F_OK) && check_permissions("/etc/at.allow", 0640, 0, 0)) {
+        printf("Pass: at is restricted to authorized users\n");
     } 
-    else 
-    {
-        printf(RED "Fail: at is not restricted to authorized users\n" RESET);
+    else {
+        printf("Fail: at is not restricted to authorized users\n");
     }
 }
 
@@ -136,20 +128,18 @@ int check_command_5_2(const char *command)
 {
     int status;
     status = system(command);
-    return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+    return WIFEXITED(status) && WEXITSTATUS(status) == 0;   // macro from sys/wait.h to check if system exited normally
 }
 
 //Ensures sudo is installed
 void test_sudo_installed() //The sudo command is essential for managing access to elevated privileges. Ensuring sudo is installed confirms that users can be given controlled access to superuser privileges when necessary.
 {
     printf("Test: 5.2.1 Ensure sudo is installed (Automated)\n");
-    if (check_command_5_2("dpkg -s sudo") || check_command_5_2("dpkg -s sudo-ldap")) 
-    {
-        printf(GREEN "Pass: sudo is installed\n" RESET);
+    if (check_command_5_2("dpkg -s sudo") || check_command_5_2("dpkg -s sudo-ldap")) {
+        printf("Pass: sudo is installed\n");
     } 
-    else 
-    {
-        printf(RED "Fail: sudo is not installed\n" RESET);
+    else {
+        printf("Fail: sudo is not installed\n");
     }
 }
 
@@ -158,12 +148,12 @@ void test_sudo_commands_use_pty() //Running sudo commands in a pseudo-terminal a
 {
     printf("Test: 5.2.2 Ensure sudo commands use pty (Automated)\n");
     if (check_command_5_2("grep -Ei '^[[:space:]]*Defaults[[:space:]]+([^#]+,[[:space:]]*)?use_pty(,[[:space:]]+\\S+[[:space:]]*)*(\\s+#.*)?$' /etc/sudoers /etc/sudoers.d/*")) 
+    // a regex to search for lines in /etc/sudoers
     {
-        printf(GREEN "Pass: sudo commands use pty\n" RESET);
+        printf("Pass: sudo commands use pty\n");    // a configuration option to use a psuedo-terminal is given
     } 
-    else 
-    {
-        printf(RED "Fail: sudo commands do not use pty\n" RESET);
+    else {
+        printf("Fail: sudo commands do not use pty\n");
     }
 }
 
@@ -173,11 +163,10 @@ void test_sudo_log_file_exists() //Logging sudo command usage is crucial for aud
     printf("Test: 5.2.3 Ensure sudo log file exists (Automated)\n");
     if (check_command_5_2("grep -Ei '^[[:space:]]*Defaults[[:space:]]+logfile=\\S+' /etc/sudoers /etc/sudoers.d/*")) 
     {
-        printf(GREEN "Pass: sudo log file is configured\n" RESET);
+        printf("Pass: sudo log file is configured\n");
     } 
-    else 
-    {
-        printf(RED "Fail: sudo log file is not configured\n" RESET);
+    else {
+        printf("Fail: sudo log file is not configured\n");
     }
 }
 
@@ -216,7 +205,7 @@ void test_password_creation_requirements() //Verifies that password creation req
     {
         int minlen = atoi(strchr(minlen_output, '=') + 1); // Extract number after "minlen = "
         fclose(fp);
-        snprintf(command, sizeof(command), "grep '^\s*minclass\s*' /etc/security/pwquality.conf");
+        snprintf(command, sizeof(command), "grep '^\s*minclass\s*' /etc/security/pwquality.conf");  // search for minlen in given path
         fp = popen(command, "r");
         if (fp != NULL && fgets(minlen_output, sizeof(minlen_output), fp) != NULL) 
         {
@@ -224,21 +213,19 @@ void test_password_creation_requirements() //Verifies that password creation req
             fclose(fp);
             if (minlen < 14 || pwquality < 4) 
             {
-                if (check_command_5_4("grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf", "dcredit = -1") &&
-                    check_command_5_4("grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf", "ucredit = -1") &&
-                    check_command_5_4("grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf", "lcredit = -1") &&
-                    check_command_5_4("grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf", "ocredit = -1") &&
-                    check_command_5_4("grep -E '^\s*password\s+(requisite|required)\s+pam_pwquality.so\s+(\S+\s+)*retry=[1-3]\s*(\s+\S+\s*)*(\s+#.*)?$' /etc/pam.d/common-password", "retry=[1-3]")) {
-                    printf(GREEN "Pass: Password creation requirements are configured correctly\n" RESET);
+                if (check_command_5_4("grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf", "dcredit = -1") &&  // system enforces at least one of digit,
+                    check_command_5_4("grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf", "ucredit = -1") &&  // upper case
+                    check_command_5_4("grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf", "lcredit = -1") &&  // lower case
+                    check_command_5_4("grep -E '^\s*[duol]credit\s*' /etc/security/pwquality.conf", "ocredit = -1") &&  // other
+                    check_command_5_4("grep -E '^\s*password\s+(requisite|required)\s+pam_pwquality.so\s+(\S+\s+)*retry=[1-3]\s*(\s+\S+\s*)*(\s+#.*)?$' /etc/pam.d/common-password", "retry=[1-3]")) {  // set retry max value to 3
+                    printf("Pass: Password creation requirements are configured correctly\n");
                 } 
-                else 
-                {
-                    printf(RED "Fail: Password creation requirements are not configured correctly\n" RESET);
+                else {
+                    printf("Fail: Password creation requirements are not configured correctly\n");
                 }
             } 
-            else 
-            {
-                printf(GREEN "Pass: Password creation requirements are configured correctly\n" RESET);
+            else {
+                printf("Pass: Password creation requirements are configured correctly\n");
             }
         }
     }
@@ -252,11 +239,10 @@ void test_lockout_for_failed_password_attempts() //Ensures that failed password 
         check_command_5_4("grep -E \"pam_(tally2|deny)\\.so\" /etc/pam.d/common-account", "account requisite pam_deny.so") &&
         check_command_5_4("grep -E \"pam_(tally2|deny)\\.so\" /etc/pam.d/common-account", "account required pam_tally2.so")) 
     {
-        printf(GREEN "Pass: Lockout for failed password attempts is configured\n" RESET);
+        printf("Pass: Lockout for failed password attempts is configured\n");
     } 
-    else 
-    {
-        printf(RED "Fail: Lockout for failed password attempts is not configured\n" RESET);
+    else {
+        printf("Fail: Lockout for failed password attempts is not configured\n");
     }
 }
 
@@ -267,25 +253,23 @@ void test_password_reuse_limited() //Verifies that password reuse is limited by 
     if (check_command_5_4("grep -E '^password\\s+required\\s+pam_pwhistory.so' /etc/pam.d/common-password", "password required pam_pwhistory.so") &&
         check_command_5_4("grep -E '^password\\s+required\\s+pam_pwhistory.so' /etc/pam.d/common-password", "remember=5")) 
     {
-        printf(GREEN "Pass: Password reuse is limited\n" RESET);
+        printf("Pass: Password reuse is limited\n");
     } 
-    else 
-    {
-        printf(RED "Fail: Password reuse is not limited\n" RESET);
+    else {
+        printf("Fail: Password reuse is not limited\n");
     }
 }
 
 //Ensures password hashing algorithm is SHA-512
-void test_password_hashing_algorithm_sha512() //Ensures that the system uses the SHA-512 algorithm for hashing passwords by checking the /etc/pam.d/common-password configuration file.
+void test_password_hashing_algorithm_sha512() // Ensures that the system uses the SHA-512 algorithm for hashing passwords by checking the /etc/pam.d/common-password configuration file.
 {
     printf("Test: 5.4.4 Ensure password hashing algorithm is SHA-512 (Automated)\n");
     if (check_command_5_4("grep -E '^\s*password\s+(\S+\s+)+pam_unix.so\s+(\S+\s+)*sha512\s*(\S+\s*)*(\s+#.*)?$' /etc/pam.d/common-password", "sha512")) 
     {
-        printf(GREEN "Pass: Password hashing algorithm is SHA-512\n" RESET);
+        printf("Pass: Password hashing algorithm is SHA-512\n");
     } 
-    else 
-    {
-        printf(RED "Fail: Password hashing algorithm is not SHA-512\n" RESET);
+    else {
+        printf("Fail: Password hashing algorithm is not SHA-512\n");
     }
 }
 
@@ -327,21 +311,19 @@ void test_minimum_days_between_password_changes() //Checks whether the system en
 
         if (mindays > 0) 
         {
-            snprintf(command, sizeof(command), "awk -F : '(/^[^:]+:[^!*]/ && $4 < 1){print $1 \" \" $4}' /etc/shadow");
+            snprintf(command, sizeof(command), "awk -F : '(/^[^:]+:[^!*]/ && $4 < 1){print $1 \" \" $4}' /etc/shadow"); // 4th field (corresponding to days) is checked
             fp = popen(command, "r");
-            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) 
-            {
-                printf(GREEN "Pass: Minimum days between password changes is configured\n" RESET);
+            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) {
+                printf("Pass: Minimum days between password changes is configured\n");
             } 
-            else 
-            {
-                printf(RED "Fail: Minimum days between password changes is not configured\n" RESET);
+            else {
+                printf("Fail: Minimum days between password changes is not configured\n");
             }
             fclose(fp);
         } 
         else 
         {
-            printf(RED "Fail: Minimum days between password changes is not configured\n" RESET);
+            printf("Fail: Minimum days between password changes is not configured\n");
         }
     }
 }
@@ -364,19 +346,16 @@ void test_password_expiration() //Ensures that the system enforces a password ex
         {
             snprintf(command, sizeof(command), "awk -F: '(/^[^:]+:[^!*]/ && ($5>365||$5~/([0-1]|-1)/)){print $1 \" \" $5}' /etc/shadow");
             fp = popen(command, "r");
-            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) 
-            {
-                printf(GREEN "Pass: Password expiration is 365 days or less\n" RESET);
+            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) {
+                printf("Pass: Password expiration is 365 days or less\n");
             } 
-            else 
-            {
-                printf(RED "Fail: Password expiration is not configured correctly\n" RESET);
+            else {
+                printf("Fail: Password expiration is not configured correctly\n");
             }
             fclose(fp);
         } 
-        else 
-        {
-            printf(RED "Fail: Password expiration exceeds 365 days\n" RESET);
+        else {
+            printf("Fail: Password expiration exceeds 365 days\n");
         }
     }
 }
@@ -399,75 +378,18 @@ void test_password_expiration_warning() //It checks the PASS_WARN_AGE setting in
         {
             snprintf(command, sizeof(command), "awk -F: '(/^[^:]+:[^!*]/ && $6<7){print $1 \" \" $6}' /etc/shadow");
             fp = popen(command, "r");
-            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) 
-            {
-                printf(GREEN "Pass: Password expiration warning days is 7 or more\n" RESET);
+            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) {
+                printf("Pass: Password expiration warning days is 7 or more\n");
             } 
-            else 
-            {
-                printf(RED "Fail: Password expiration warning days is less than 7\n" RESET);
+            else {
+                printf("Fail: Password expiration warning days is less than 7\n");
             }
             fclose(fp);
         } 
-        else 
-        {
-            printf(RED "Fail: Password expiration warning days is less than 7\n" RESET);
+        else {
+            printf("Fail: Password expiration warning days is less than 7\n");
         }
     }
-}
-
-//Ensures inactive password lock is 30 days or less
-void test_inactive_password_lock() //Retrieves the INACTIVE setting from useradd -D and ensures it is less than 31 days.
-{
-    printf("Test: 5.5.1.4 Ensure inactive password lock is 30 days or less (Automated)\n");
-
-    char command[128];
-    snprintf(command, sizeof(command), "useradd -D | grep INACTIVE");
-    char output[128];
-    FILE *fp = popen(command, "r");
-    if (fp != NULL && fgets(output, sizeof(output), fp) != NULL) 
-    {
-        int inactive = atoi(strchr(output, '=') + 1); // Extract the number after "INACTIVE"
-        fclose(fp);
-
-        if (inactive != -1 && inactive < 31) 
-        {
-            snprintf(command, sizeof(command), "awk -F: '(/^[^:]+:[^!*]/ && ($7~/(-1)/ || $7>30)){print $1 \" \" $7}' /etc/shadow");
-            fp = popen(command, "r");
-            if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) 
-            {
-                printf(GREEN "Pass: Inactive password lock is 30 days or less\n" RESET);
-            } 
-            else 
-            {
-                printf(RED "Fail: Inactive password lock exceeds 30 days\n" RESET);
-            }
-            fclose(fp);
-        } 
-        else 
-        {
-            printf(RED "Fail: Inactive password lock exceeds 30 days or is not configured\n" RESET);
-        }
-    }
-}
-
-//Ensures all users last password change date is in the past
-void test_users_last_password_change() //It retrieves the last password change date for all users from /etc/shadow using the chage command and checks if any user has a future date for their password change.
-{
-    printf("Test: 5.5.1.5 Ensure all users last password change date is in the past (Automated)\n");
-    char output[128];
-    char command[512];
-    snprintf(command, sizeof(command), "awk -F: '{print $1}' /etc/shadow | while read -r usr; do [[ $(date --date=\"$(chage --list \"$usr\" | grep '^Last password change' | cut -d: -f2)\" +%%s) > $(date +%%s) ]] && echo \"$usr last password change was: $(chage --list \"$usr\" | grep '^Last password change' | cut -d: -f2)\"; done");
-    FILE *fp = popen(command, "r");
-    if (fp != NULL && fgets(output, sizeof(output), fp) == NULL) 
-    {
-        printf(GREEN "Pass: All users' last password change date is in the past\n" RESET);
-    } 
-    else 
-    {
-        printf(RED "Fail: Some users' last password change date is in the future\n" RESET);
-    }
-    fclose(fp);
 }
 
 //Ensures system accounts are secured
@@ -478,11 +400,11 @@ void test_system_accounts_secured() //Ensures that no system accounts have inval
     if (check_command_5_5("awk -F: '$1!~/(root|sync|shutdown|halt|^\\+)/ && $3<'$(awk '/^\\s*UID_MIN/{print $2}' /etc/login.defs)' && $7!~/((\\/usr)?\\/sbin\\/nologin)/ && $7!~/(\\/bin)?\\/false/ {print}' /etc/passwd", "") &&
         check_command_5_5("awk -F: '($1!~/(root|^\\+)/ && $3<'$(awk '/^\\s*UID_MIN/{print $2}' /etc/login.defs)') {print $1}' /etc/passwd | xargs -I '{}' passwd -S '{}' | awk '($2!~/LK?/) {print $1}'", "")) 
     {
-        printf(GREEN "Pass: System accounts are secured\n" RESET);
+        printf("Pass: System accounts are secured\n");
     } 
     else 
     {
-        printf(RED "Fail: System accounts are not secured\n" RESET);
+        printf("Fail: System accounts are not secured\n");
     }
 }
 
@@ -491,13 +413,11 @@ void test_default_group_for_root() //Checks the /etc/passwd file to ensure that 
 {
     printf("Test: 5.5.3 Ensure default group for the root account is GID 0 (Automated)\n");
 
-    if (check_command_5_5("grep \"^root:\" /etc/passwd | cut -f4 -d:", "0")) 
-    {
-        printf(GREEN "Pass: Default group for root is GID 0\n" RESET);
+    if (check_command_5_5("grep \"^root:\" /etc/passwd | cut -f4 -d:", "0")) {
+        printf("Pass: Default group for root is GID 0\n");
     } 
-    else 
-    {
-        printf(RED "Fail: Default group for root is not GID 0\n" RESET);
+    else {
+        printf("Fail: Default group for root is not GID 0\n");
     }
 }
 
@@ -508,11 +428,11 @@ void test_default_user_umask() //Runs two checks: one to confirm that the umask 
 
     if (check_command_5_5("check_default_umask", "Default user umask is set") && check_command_5_5("check_for_less_restrictive_umask", "")) 
     {
-        printf(GREEN "Pass: Default user umask is 027 or more restrictive\n" RESET);
+        printf("Pass: Default user umask is 027 or more restrictive\n");
     } 
     else 
     {
-        printf(RED "Fail: Default user umask is not 027 or more restrictive\n" RESET);
+        printf("Fail: Default user umask is not 027 or more restrictive\n");
     }
 }
 
@@ -523,11 +443,11 @@ void test_default_user_shell_timeout() //Checks the shell timeout settings (spec
 
     if (check_command_5_5("check_timeout_settings", "PASSED")) 
     {
-        printf(GREEN "Pass: Default user shell timeout is 900 seconds or less\n" RESET);
+        printf("Pass: Default user shell timeout is 900 seconds or less\n");
     } 
     else 
     {
-        printf(RED "Fail: Default user shell timeout exceeds 900 seconds\n" RESET);
+        printf("Fail: Default user shell timeout exceeds 900 seconds\n");
     }
 }
 
@@ -535,7 +455,7 @@ void test_default_user_shell_timeout() //Checks the shell timeout settings (spec
 void test_root_login_restricted() //This test is marked as skip because it requires manual inspection of system settings that can’t be easily automated.
 {
     printf("Test: 5.6 Ensure root login is restricted to system console (Manual)\n");
-    printf(BLUE "This audit has to be done manually\n" RESET);
+    printf("This audit has to be done manually\n");
 }
 
 // Test: Ensure access to the su command is restricted
@@ -547,11 +467,11 @@ void test_access_to_su_command() //It checks for the pam_wheel.so module in /etc
     snprintf(command, sizeof(command), "grep pam_wheel.so /etc/pam.d/su");
     if (check_command_5_5(command, "auth required pam_wheel.so use_uid group=")) 
     {
-        printf(GREEN "Pass: Access to the su command is restricted\n" RESET);
+        printf("Pass: Access to the su command is restricted\n");
     } 
     else 
     {
-        printf(RED "Fail: Access to the su command is not restricted\n" RESET);
+        printf("Fail: Access to the su command is not restricted\n");
     }
 }
 
@@ -586,36 +506,36 @@ int check_command_5_3(const char *command, const char *expected_output) {
 void test_permissions_on_etc_ssh_sshd_config() {
     printf("Test: 5.3.1 Ensure permissions on /etc/ssh/sshd_config are configured (Automated)\n");
     if (check_command_5_3("stat /etc/ssh/sshd_config", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0640/-rw-r-----)")) {
-        printf(GREEN "Pass: Permissions on /etc/ssh/sshd_config are correctly configured\n" RESET);
+        printf("Pass: Permissions on /etc/ssh/sshd_config are correctly configured\n");
     } else {
-        printf(RED "Fail: Permissions on /etc/ssh/sshd_config are not correctly configured\n" RESET);
+        printf("Fail: Permissions on /etc/ssh/sshd_config are not correctly configured\n");
     }
 }
 
 void test_permissions_on_ssh_private_host_key_files() {
     printf("Test: 5.3.2 Ensure permissions on SSH private host key files are configured (Automated)\n");
     if (check_command_5_3("find /etc/ssh -type f -name 'ssh_host_*_key' -exec stat {} \\;", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0600/-rw-------)")) {
-        printf(GREEN "Pass: Permissions on SSH private host key files are correctly configured\n" RESET);
+        printf("Pass: Permissions on SSH private host key files are correctly configured\n");
     } else {
-        printf(RED "Fail: Permissions on SSH private host key files are not correctly configured\n" RESET);
+        printf("Fail: Permissions on SSH private host key files are not correctly configured\n");
     }
 }
 
 void test_permissions_on_ssh_public_host_key_files() {
     printf("Test: 5.3.3 Ensure permissions on SSH public host key files are configured (Automated)\n");
     if (check_command_5_3("find /etc/ssh -type f -name 'ssh_host_*_key.pub' -exec stat {} \\;", "Uid: ( 0/ root) Gid: ( 0/ root) Access: (0644/-rw-r--r--)")) {
-        printf(GREEN "Pass: Permissions on SSH public host key files are correctly configured\n" RESET);
+        printf("Pass: Permissions on SSH public host key files are correctly configured\n");
     } else {
-        printf(RED "Fail: Permissions on SSH public host key files are not correctly configured\n" RESET);
+        printf("Fail: Permissions on SSH public host key files are not correctly configured\n");
     }
 }
 
 void test_ssh_access_is_limited() {
     printf("Test: 5.3.4 Ensure SSH access is limited (Automated)\n");
     if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep -Ei '^\s*(allow|deny)(users|groups)\\s+\\S+'", "allowusers")) {
-        printf(GREEN "Pass: SSH access is correctly limited\n" RESET);
+        printf("Pass: SSH access is correctly limited\n");
     } else {
-        printf(RED "Fail: SSH access is not correctly limited\n" RESET);
+        printf("Fail: SSH access is not correctly limited\n");
     }
 }
 
@@ -623,126 +543,126 @@ void test_ssh_loglevel_is_appropriate() {
     printf("Test: 5.3.5 Ensure SSH LogLevel is appropriate (Automated)\n");
     if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep loglevel", "LogLevel VERBOSE") ||
         check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep loglevel", "loglevel INFO")) {
-        printf(GREEN "Pass: SSH LogLevel is correctly configured\n" RESET);
+        printf("Pass: SSH LogLevel is correctly configured\n");
     } else {
-        printf(RED "Fail: SSH LogLevel is not correctly configured\n" RESET);
+        printf("Fail: SSH LogLevel is not correctly configured\n");
     }
 }
 
 void test_ssh_x11_forwarding_disabled() {
     printf("Test: 5.3.6 Ensure SSH X11 forwarding is disabled (Automated)\n");
     if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep -i x11forwarding", "x11forwarding no")) {
-        printf(GREEN "Pass: SSH X11 forwarding is correctly disabled\n" RESET);
+        printf("Pass: SSH X11 forwarding is correctly disabled\n");
     } else {
-        printf(RED "Fail: SSH X11 forwarding is not correctly disabled\n" RESET);
+        printf("Fail: SSH X11 forwarding is not correctly disabled\n");
     }
 }
 
 void test_ssh_max_auth_tries_configured() {
     printf("Test: 5.3.7 Ensure SSH MaxAuthTries is configured (Automated)\n");
     if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep maxauthtries", "MaxAuthTries 3")) {
-        printf(GREEN "Pass: SSH MaxAuthTries is correctly configured\n" RESET);
+        printf("Pass: SSH MaxAuthTries is correctly configured\n");
     } else {
-        printf(RED "Fail: SSH MaxAuthTries is not correctly configured\n" RESET);
+        printf("Fail: SSH MaxAuthTries is not correctly configured\n");
     }
 }
 
 void test_permissions_on_etc_gshadow() {
     printf("Test: 5.3.8 Ensure permissions on /etc/gshadow are configured (Automated)\n");
     if (check_command_5_3("stat /etc/gshadow", "Access: (0640/-rw-r-----) Uid: ( 0/ root) Gid: ( 0/ shadow)")) {
-        printf(GREEN "Pass: Permissions on /etc/gshadow are correctly configured\n" RESET);
+        printf("Pass: Permissions on /etc/gshadow are correctly configured\n");
     } else {
-        printf(RED "Fail: Permissions on /etc/gshadow are not correctly configured\n" RESET);
+        printf("Fail: Permissions on /etc/gshadow are not correctly configured\n");
     }
 }
 
 void test_permissions_on_etc_shadow() {
     printf("Test: 5.3.9 Ensure permissions on /etc/shadow are configured (Automated)\n");
     if (check_command_5_3("stat /etc/shadow", "Access: (0640/-rw-r-----) Uid: ( 0/ root) Gid: ( 0/ shadow)")) {
-        printf(GREEN "Pass: Permissions on /etc/shadow are correctly configured\n" RESET);
+        printf("Pass: Permissions on /etc/shadow are correctly configured\n");
     } else {
-        printf(RED "Fail: Permissions on /etc/shadow are not correctly configured\n" RESET);
+        printf("Fail: Permissions on /etc/shadow are not correctly configured\n");
     }
 }
 
 void test_permissions_on_etc_passwd() {
     printf("Test: 5.3.10 Ensure permissions on /etc/passwd are configured (Automated)\n");
     if (check_command_5_3("stat /etc/passwd", "Access: (0644/-rw-r--r--) Uid: ( 0/ root) Gid: ( 0/ root)")) {
-        printf(GREEN "Pass: Permissions on /etc/passwd are correctly configured\n" RESET);
+        printf("Pass: Permissions on /etc/passwd are correctly configured\n");
     } else {
-        printf(RED "Fail: Permissions on /etc/passwd are not correctly configured\n" RESET);
+        printf("Fail: Permissions on /etc/passwd are not correctly configured\n");
     }
 }
 
 void test_etc_passwd_is_immutable() {
     printf("Test: 5.3.11 Ensure /etc/passwd is immutable (Automated)\n");
     if (check_command_5_3("lsattr /etc/passwd", "i")) {
-        printf(GREEN "Pass: /etc/passwd is correctly immutable\n" RESET);
+        printf("Pass: /etc/passwd is correctly immutable\n");
     } else {
-        printf(RED "Fail: /etc/passwd is not correctly immutable\n" RESET);
+        printf("Fail: /etc/passwd is not correctly immutable\n");
     }
 }
 
 void test_etc_shadow_is_immutable() {
     printf("Test: 5.3.12 Ensure /etc/shadow is immutable (Automated)\n");
     if (check_command_5_3("lsattr /etc/shadow", "i")) {
-        printf(GREEN "Pass: /etc/shadow is correctly immutable\n" RESET);
+        printf("Pass: /etc/shadow is correctly immutable\n");
     } else {
-        printf(RED "Fail: /etc/shadow is not correctly immutable\n" RESET);
+        printf("Fail: /etc/shadow is not correctly immutable\n");
     }
 }
 
 void test_etc_group_is_immutable() {
     printf("Test: 5.3.13 Ensure /etc/group is immutable (Automated)\n");
     if (check_command_5_3("lsattr /etc/group", "i")) {
-        printf(GREEN "Pass: /etc/group is correctly immutable\n" RESET);
+        printf("Pass: /etc/group is correctly immutable\n");
     } else {
-        printf(RED "Fail: /etc/group is not correctly immutable\n" RESET);
+        printf("Fail: /etc/group is not correctly immutable\n");
     }
 }
 
 void test_etc_gshadow_is_immutable() {
     printf("Test: 5.3.14 Ensure /etc/gshadow is immutable (Automated)\n");
     if (check_command_5_3("lsattr /etc/gshadow", "i")) {
-        printf(GREEN "Pass: /etc/gshadow is correctly immutable\n" RESET);
+        printf("Pass: /etc/gshadow is correctly immutable\n");
     } else {
-        printf(RED "Fail: /etc/gshadow is not correctly immutable\n" RESET);
+        printf("Fail: /etc/gshadow is not correctly immutable\n");
     }
 }
 
 void test_rhosts_files_disabled() {
     printf("Test: 5.3.15 Ensure .rhosts files are disabled (Automated)\n");
     if (check_command_5_3("grep -i '^*.*rhosts' /etc/ssh/sshd_config", "")) {
-        printf(GREEN "Pass: .rhosts files are correctly disabled\n" RESET);
+        printf("Pass: .rhosts files are correctly disabled\n");
     } else {
-        printf(RED "Fail: .rhosts files are not correctly disabled\n" RESET);
+        printf("Fail: .rhosts files are not correctly disabled\n");
     }
 }
 
 void test_ssh_root_login_disabled() {
     printf("Test: 5.3.16 Ensure SSH root login is disabled (Automated)\n");
     if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep permitrootlogin", "PermitRootLogin no")) {
-        printf(GREEN "Pass: SSH root login is correctly disabled\n" RESET);
+        printf("Pass: SSH root login is correctly disabled\n");
     } else {
-        printf(RED "Fail: SSH root login is not correctly disabled\n" RESET);
+        printf("Fail: SSH root login is not correctly disabled\n");
     }
 }
 
 void test_ssh_protocol_is_2() {
     printf("Test: 5.3.17 Ensure SSH protocol is set to 2 (Automated)\n");
     if (check_command_5_3("sshd -T -C user=root -C host=$(hostname) -C addr=$(grep $(hostname) /etc/hosts | awk '{print $1}') | grep protocol", "Protocol 2")) {
-        printf(GREEN "Pass: SSH protocol is correctly set to 2\n" RESET);
+        printf("Pass: SSH protocol is correctly set to 2\n");
     } else {
-        printf(RED "Fail: SSH protocol is not correctly set to 2\n" RESET);
+        printf("Fail: SSH protocol is not correctly set to 2\n");
     }
 }
 
 void test_etc_ssh_disabled() {
     printf("Test: 5.3.18 Ensure SSH is disabled if not needed (Automated)\n");
     if (check_command_5_3("systemctl is-enabled ssh", "disabled")) {
-        printf(GREEN "Pass: SSH is correctly disabled if not needed\n" RESET);
+        printf("Pass: SSH is correctly disabled if not needed\n");
     } else {
-        printf(RED "Fail: SSH is not correctly disabled if not needed\n" RESET);
+        printf("Fail: SSH is not correctly disabled if not needed\n");
     }
 }
 //Pujit's additions end here

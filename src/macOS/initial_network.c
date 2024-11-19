@@ -21,6 +21,9 @@
 #include <fcntl.h>
 //#include <fstream>
 #include <mysql/mysql.h> // MySQL header for C API
+#include <openssl/evp.h>  // For Base64 encoding
+#include <curl/curl.h>
+#include <time.h>
 MYSQL *conn;
 MYSQL_RES *res;
 MYSQL_ROW row;
@@ -35,6 +38,14 @@ FILE *results_file;
             fprintf(results_file, fmt, ##__VA_ARGS__); \
         log_to_database(fmt, ##__VA_ARGS__);    \
     } while (0)
+
+#define SMTP_SERVER "smtp.gmail.com"
+#define SMTP_PORT 587
+#define FROM_EMAIL "pujit.jha@gmail.com"
+#define TO_EMAIL "pujit.jha@gmail.com"
+#define APP_PASSWORD "--" // Replace with your actual App Password
+#define MAILJET_API_KEY "<MAILJET_API_KEY>"
+#define MAILJET_API_SECRET "<MAILJET_API_SECRET_KEY>"
 
 // Function to log failure details to suggestions.txt
 void log_failure(const char *test_case, const char *purpose, const char *implications, const char *suggestion)
@@ -124,6 +135,243 @@ void create_and_download_sql_dump(const char *dbname, const char *output_path)
         );
     }
 }
+
+// Function to encode data in base64
+static const char base64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+//char* base64_encode(const char* input)
+//{
+//    // Create a buffer for base64 encoded output
+//    size_t length = strlen(input);
+//    size_t out_length = 4 * ((length + 2) / 3); // Base64 encoded length
+//    char* encoded = (char*)malloc(out_length + 1); // +1 for null-terminator
+//
+//    // Base64 encode the input
+//    EVP_ENCODE_CTX *ctx = EVP_ENCODE_CTX_new();
+//    EVP_EncodeInit(ctx);
+//    int out_len;
+//    EVP_EncodeUpdate(ctx, (unsigned char*)encoded, &out_len, (unsigned char*)input, length);
+//    EVP_EncodeFinal(ctx, (unsigned char*)encoded + out_len, &out_len);
+//    encoded[out_length] = '\0';
+//
+//    EVP_ENCODE_CTX_free(ctx);
+//
+//    return encoded;
+//}
+
+// Function to read Base64-encoded content from a file and remove newline characters
+//char* read_base64_from_file(const char *filename)
+//{
+//    FILE *file = fopen(filename, "r");
+//    if (!file)
+//    {
+//        perror("Unable to open file");
+//        return NULL;
+//    }
+//
+//    // Find file size
+//    fseek(file, 0, SEEK_END);
+//    long file_size = ftell(file);
+//    fseek(file, 0, SEEK_SET);
+//
+//    // Allocate memory for the Base64 content
+//    char *encoded_content = (char *)malloc(file_size + 1);
+//    if (!encoded_content)
+//    {
+//        perror("Unable to allocate memory");
+//        fclose(file);
+//        return NULL;
+//    }
+//
+//    // Read the file into the buffer
+//    size_t read_size = fread(encoded_content, 1, file_size, file);
+//    encoded_content[read_size] = '\0';  // Null terminate the string
+//
+//    fclose(file);
+//
+//    // Remove newline characters if present
+//    size_t len = strlen(encoded_content);
+//    for (size_t i = 0; i < len; i++)
+//    {
+//        if (encoded_content[i] == '\n' || encoded_content[i] == '\r')
+//        {
+//            encoded_content[i] = '\0';
+//            break;  // Remove first newline character and terminate the string
+//        }
+//    }
+//
+//    return encoded_content;
+//}
+
+// Function to send email using MailJet API
+void send_email_mailjet_with_attachment(const char *subject, const char *body, const char *to_email, const char *attachment_base64)
+{
+    CURL *curl;
+    CURLcode res;
+    struct curl_slist *headers = NULL;
+
+    // Prepare JSON payload for email with the attachment
+    char payload[2048];
+    snprintf(payload, sizeof(payload),
+             "{\"Messages\":[{\"From\":{\"Email\":\"pujit.jha@gmail.com\",\"Name\":\"Pujit Jha\"},"
+             "\"To\":[{\"Email\":\"%s\"}],"
+             "\"Subject\":\"%s\","
+             "\"TextPart\":\"%s\","
+             "\"Attachments\":[{\"ContentType\":\"application/sql\","
+             "\"Filename\":\"SQL_Log_InitialSetupAndNetwork.sql\","
+             "\"Base64Content\":\"%s\"}]}]}",
+             to_email, subject, body, attachment_base64);
+
+    // Initialize cURL
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl = curl_easy_init();
+
+    if(curl)
+    {
+        // Set the URL for MailJet API
+        curl_easy_setopt(curl, CURLOPT_URL, "https://api.mailjet.com/v3.1/send");
+
+        // Set authentication header (Base64 encoded API key and secret)
+        char auth_header[1024];
+        snprintf(auth_header, sizeof(auth_header), "Authorization: Basic %s", "<Base64_EncodedAPI>");
+
+        // Add the headers for Content-Type and Authorization
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        headers = curl_slist_append(headers, auth_header);
+
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload);
+
+        // Perform the request
+        res = curl_easy_perform(curl);
+
+        // Check the result
+        if(res != CURLE_OK)
+        {
+            fprintf(stderr, "Error sending email: %s\n", curl_easy_strerror(res));
+        }
+        else
+        {
+            printf("Email sent successfully!\n");
+        }
+
+        // Clean up
+        curl_easy_cleanup(curl);
+        curl_slist_free_all(headers);
+    }
+
+    // Clean up cURL globally
+    curl_global_cleanup();
+}
+
+//size_t read_file_callback(void *ptr, size_t size, size_t nmemb, FILE *file)
+//{
+//    size_t read_size = fread(ptr, size, nmemb, file);
+//    return read_size;
+//}
+//
+//void send_email_mailjet_with_attachment2(const char *subject, const char *body, const char *to_email, const char *file_path)
+//{
+//    CURL *curl;
+//    CURLcode res;
+//    struct curl_slist *headers = NULL;
+//    FILE *file = NULL;
+//    long file_size = 0;
+//    char *file_contents = NULL;
+//    size_t bytes_read;
+//
+//    // Open the attachment file
+//    file = fopen(file_path, "rb");
+//    if (!file) {
+//        fprintf(stderr, "Failed to open file: %s\n", file_path);
+//        return;
+//    }
+//
+//    // Get the file size
+//    fseek(file, 0, SEEK_END);
+//    file_size = ftell(file);
+//    fseek(file, 0, SEEK_SET);
+//
+//    // Allocate memory to read the file contents
+//    file_contents = (char *)malloc(file_size);
+//    if (!file_contents) {
+//        fprintf(stderr, "Memory allocation failed for file content\n");
+//        fclose(file);
+//        return;
+//    }
+//
+//    // Read the file content into memory
+//    bytes_read = fread(file_contents, 1, file_size, file);
+//    if (bytes_read != file_size) {
+//        fprintf(stderr, "Error reading file\n");
+//        free(file_contents);
+//        fclose(file);
+//        return;
+//    }
+//
+//    fclose(file);  // Close the file now that it's read
+//
+//    // Now you need to encode the file in Base64 manually (if required).
+//    // Here we will skip this step, assuming the file is properly encoded when sending as part of the request.
+//
+//    // Prepare JSON payload for email with the attachment
+//    char payload[2048];
+//    snprintf(payload, sizeof(payload),
+//             "{\"Messages\":[{\"From\":{\"Email\":\"pujit.jha@gmail.com\",\"Name\":\"Pujit Jha\"},"
+//             "\"To\":[{\"Email\":\"%s\"}],"
+//             "\"Subject\":\"%s\","
+//             "\"TextPart\":\"%s\","
+//             "\"Attachments\":[{\"ContentType\":\"application/sql\","
+//             "\"Filename\":\"SQL_Log.sql\","
+//             "\"Base64Content\":\"%s\"}]}]}",
+//             to_email, subject, body, file_contents);
+//
+//    // Debug output: Check the generated JSON payload
+//    printf("Payload: %s\n", payload);
+//
+//    // Initialize cURL
+//    curl_global_init(CURL_GLOBAL_DEFAULT);
+//    curl = curl_easy_init();
+//
+//    if(curl) {
+//        // Set the URL for MailJet API
+//        curl_easy_setopt(curl, CURLOPT_URL, "https://api.mailjet.com/v3.1/send");
+//
+//        // Set authentication header (Base64 encoded API key and secret)
+//        char auth_header[1024];
+//        snprintf(auth_header, sizeof(auth_header), "Authorization: Basic %s", "YjRkMzZkMzNhZmI0OGJiNGE1ZGU1MWVhNjQyMzc1ZTA6NTYzNWVmYjlmMjIyNjc2ZjlhMjhkOWU4YmFkNTI4NDI=");
+//
+//        // Add the headers for Content-Type and Authorization
+//        headers = curl_slist_append(headers, "Content-Type: application/json");
+//        headers = curl_slist_append(headers, auth_header);
+//
+//        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+//        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload);
+//
+//        // Enable verbose output for debugging
+//        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+//
+//        // Perform the request
+//        res = curl_easy_perform(curl);
+//
+//        // Check the result
+//        if(res != CURLE_OK) {
+//            fprintf(stderr, "Error sending email: %s\n", curl_easy_strerror(res));
+//        } else {
+//            printf("Email sent successfully!\n");
+//        }
+//
+//        // Clean up
+//        curl_easy_cleanup(curl);
+//        curl_slist_free_all(headers);
+//    }
+//
+//    // Clean up cURL globally
+//    curl_global_cleanup();
+//
+//    // Free the file content memory
+//    free(file_contents);
+//}
 
 // Checks if a service is running (MacOS version)
 int check_service(const char *service)
@@ -879,7 +1127,12 @@ void check_nftables_service_enabled()
     fclose(fp);
 }
 
-
+void get_current_time(char *buffer, size_t buffer_size)
+{
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+    strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", tm_info);  // Format: YYYY-MM-DD HH:MM:SS
+}
 
 int main()
 {
@@ -933,8 +1186,37 @@ int main()
     create_and_download_sql_dump(dbname, output_path);
     
     fclose(results_file);
-    printf("Execution completed");
+    //printf("Execution completed");
+    
+//    const char *subject = "SQL Dump File";
+//    const char *body = "Please find the attached SQL dump file.";
+//    const char *file_path = "/Users/pujit.jha09/Downloads/SQL_Log.sql";  // Path to your SQL dump file
+
+    // Send the email with the SQL file as an attachment
+//    send_email_smtp(subject, body, file_path);
+//    char *encoded_content = read_base64_from_file("/Users/pujit.jha09/encoded_sql.txt");
+//    if (encoded_content == NULL)
+//    {
+//        return 1;  // Error reading file
+//    }
+
+    // Define email parameters
+    char current_time[20];  // Buffer to hold the formatted time
+    get_current_time(current_time, sizeof(current_time));
+    char body[256];
+    snprintf(body, sizeof(body),
+                 "PFA the dump file of the database, as of %s, containing the logs generated by our Audit Logger.",
+                 current_time);
+    const char *subject = "Audit Log Database Dump";
+    const char *to_email = "palashdas@iitj.ac.in";  // Change to the recipient's email
+    const char *file_path = "/Users/pujit.jha09/Downloads/SQL_Log.sql";  // Path to the attachment file
+
+    // Call the function to send the email with the attachment
+    send_email_mailjet_with_attachment(subject, body, to_email, file_path);
     
     mysql_close(conn);
+    
+    printf("Execution completed");
+    
     return 0;
 }

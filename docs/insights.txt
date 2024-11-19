@@ -1,0 +1,9 @@
+1. What's a Linux service - it's the background process that keeps running to perform some tasks (start at boot)
+                          - Ex: web, database, network
+                          - services are typically managed using ```systemctl```
+
+2. What is systemd - it provides many system components for Linux 
+                   - main component is "system and service manager" - init system to manage user processes
+                   - d because of Unix convetion for daemons
+                   - system services are like ssh, cron etc
+3. dpkg - debian package manager
