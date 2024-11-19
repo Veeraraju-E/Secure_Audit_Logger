@@ -84,8 +84,12 @@ sudo apt-get install -y build-essential gcc make
 
 # Install required packages
 brew install gcc make
-```
+brew install mysql-client
+brew install openssl
+brew install curl
+brew install mailutils
 
+```
 #### Windows
 
 ```powershell
@@ -141,7 +145,9 @@ sudo ./scripts/run_audit.sh
 For macOS:
 
 ```bash
-sudo ./scripts/run_audit.sh
+gcc -o MacExec OS_<name_of_file>.c -I/opt/homebrew/Cellar/mysql/9.0.1_6/include -L/opt/homebrew/Cellar/mysql/9.0.1_6/lib -lmysqlclient -lpthread -I/opt/homebrew/opt/curl/include -L/opt/homebrew/opt/curl/lib -lcurl -I/opt/homebrew/opt/openssl/include -L/opt/homebrew/opt/openssl/lib -lssl -lcrypto
+
+#To be executed for each file
 ```
 
 For Windows (Run PowerShell as Administrator):
@@ -206,7 +212,7 @@ Test: 4.1.2.1 Ensure audit log storage size is configured (Automated)
 ## Operating System Support
 
 - Linux (Ubuntu 22.04 LTS)
-- macOS (coming soon)
+- macOS (macOS Sequoia 15.1)
 - Windows (coming soon)
 
 ## Project Structure
